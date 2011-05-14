@@ -5,7 +5,9 @@ require "dbox"
 require "fileutils"
 
 LOCAL_TEST_PATH = File.expand_path(File.join(File.dirname(__FILE__), "..", "tmp", "test_dirs"))
+ALTERNATE_LOCAL_TEST_PATH = File.join(LOCAL_TEST_PATH, "alternate")
 FileUtils.mkdir_p(LOCAL_TEST_PATH)
+FileUtils.mkdir_p(ALTERNATE_LOCAL_TEST_PATH)
 
 REMOTE_TEST_PATH = "/dbox_test_dirs"
 

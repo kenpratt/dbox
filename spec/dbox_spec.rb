@@ -60,6 +60,20 @@ describe Dbox do
       cd @local
       expect { Dbox.pull }.to_not raise_error
     end
+
+    it "should be able to pull changes" do
+      Dbox.create(@remote)
+      File.exists?("#{@local}/hello.txt").should be_false
+
+      cd ALTERNATE_LOCAL_TEST_PATH
+      Dbox.clone(@remote)
+      cd @name
+      touch "hello.txt"
+      Dbox.push
+
+      expect { Dbox.pull(@local) }.to_not raise_error
+      File.exists?("#{@local}/hello.txt").should be_true
+    end
   end
 
   describe "#push" do

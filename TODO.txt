@@ -1,5 +1,5 @@
-* Add tests
 * Add proper logger
+* Have pull, push, etc return a list of changed files
 * See if pull re-creates locally-deleted files (it shouldn't)
 * Look down directory tree until you hit a .dropbox.db file
 * Solve upload -> re-download issue

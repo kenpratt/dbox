@@ -25,7 +25,10 @@ module Dbox
     elsif defined?(Rails.logger)
       Rails.logger
     else
-      Logger.new(STDOUT)
+      l = Logger.new(STDOUT)
+      l.level = Logger::INFO
+      l.formatter = proc {|severity, datetime, progname, msg| "[#{severity}] #{msg}\n" }
+      l
     end
   end
 end

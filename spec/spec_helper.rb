@@ -11,6 +11,8 @@ FileUtils.mkdir_p(ALTERNATE_LOCAL_TEST_PATH)
 
 REMOTE_TEST_PATH = "/dbox_test_dirs"
 
+LOGGER = Logger.new(File.expand_path(File.join(File.dirname(__FILE__), "..", "tmp", "test.log")))
+
 def randname
   u = `uuidgen`.chomp
   "test-#{u}"

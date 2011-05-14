@@ -1,8 +1,9 @@
+require "dbox/client_api"
 require "yaml"
 require "fileutils"
 require "time"
 
-module DropboxSync
+module Dbox
   class Db
     attr_accessor :local_path
 
@@ -107,7 +108,7 @@ module DropboxSync
         auth_secret = ENV["DROPBOX_AUTH_SECRET"]
         raise("Must set DROPBOX_AUTH_KEY environment variable to an authenticated Dropbox session key") unless auth_key
         raise("Must set DROPBOX_AUTH_SECRET environment variable to an authenticated Dropbox session secret") unless auth_secret
-        @api = DropboxSync::ClientAPI.connect(auth_key, auth_secret)
+        @api = API.connect(auth_key, auth_secret)
       end
       @api
     end

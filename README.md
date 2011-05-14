@@ -1,5 +1,5 @@
-Simple Dropbox
-==============
+dbox
+====
 
 A painless way to push and pull your Dropbox folders, with fine-grained control over what folder you are syncing, where you are syncing it to, and when you are doing it.
 
@@ -23,7 +23,7 @@ $ edit config/dropbox.json
 ### Generate auth token
 
 <pre>
-$ simple-dropbox authorize
+$ dbox authorize
 Please visit the following URL in your browser, log into Dropbox, and authorize the app you created.
 
 http://www.dropbox.com/0/oauth/authorize?oauth_token=oeunsth23censth
@@ -35,8 +35,8 @@ export DROPBOX_AUTH_SECRET=0123456789abcdefg
 
 This auth token will last for 10 years, or when you choose to invalidate it, whichever comes first.
 
-Now either include these constants in yours calls to simple-dropbox, or set them as environment variables. In bash, including them in calls looks like:
-$ DROPBOX_AUTH_KEY="abcdef012345678" DROPBOX_AUTH_SECRET="0123456789abcdefg" simple-dropbox ...
+Now either include these constants in yours calls to dbox, or set them as environment variables. In bash, including them in calls looks like:
+$ DROPBOX_AUTH_KEY="abcdef012345678" DROPBOX_AUTH_SECRET="0123456789abcdefg" dbox ...
 </pre>
 
 
@@ -46,31 +46,31 @@ Usage
 ### Authorize
 
 <pre>
-$ simple-dropbox authorize
+$ dbox authorize
 </pre>
 
 ### Clone an existing Dropbox folder
 
 <pre>
-$ simple-dropbox clone <remote_path> [<local_path>]
+$ dbox clone <remote_path> [<local_path>]
 </pre>
 
 ### Create a new Dropbox folder
 
 <pre>
-$ simple-dropbox create <remote_path> [<local_path>]
+$ dbox create <remote_path> [<local_path>]
 </pre>
 
 ### Pull (download changes from Dropbox)
 
 <pre>
-$ simple-dropbox pull
+$ dbox pull
 </pre>
 
 ### Push (upload changes to Dropbox)
 
 <pre>
-$ simple-dropbox push
+$ dbox push
 </pre>
 
 
@@ -78,18 +78,18 @@ Example
 -------
 
 <pre>
-$ simple-dropbox authorize
+$ dbox authorize
 (visit website, come back and press enter)
 
 $ export DROPBOX_AUTH_KEY=abcdef012345678
 $ export DROPBOX_AUTH_SECRET=0123456789abcdefg
 
 $ cd /tmp
-$ simple-dropbox clone Public
+$ dbox clone Public
 $ cd Public
 $ echo "hello world" > hello.txt
-$ simple-dropbox push
+$ dbox push
 
 (now edit hello.txt from your dropbox folder)
-$ simple-dropbox pull
+$ dbox pull
 $ cat hello.txt

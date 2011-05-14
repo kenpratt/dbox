@@ -1,2 +1,0 @@
-#!/bin/sh
-ruby `dirname $0`/lib/simple_dropbox.rb $@

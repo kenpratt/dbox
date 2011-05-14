@@ -2,15 +2,15 @@ $:.unshift File.join(ROOT_PATH, "vendor", "dropbox-client-ruby", "lib")
 
 require "dropbox"
 
-module DropboxSync
-  class ClientAPI
+module Dbox
+  class API
     def self.connect(auth_key, auth_secret)
       api = new()
       api.connect(auth_key, auth_secret)
       api
     end
 
-    # IMPORTANT: DropboxAPI.new is private. Please use DropboxAPI.connect as the entry point.
+    # IMPORTANT: API.new is private. Please use API.connect as the entry point.
     private_class_method :new
     def initialize
     end
@@ -26,7 +26,7 @@ module DropboxSync
       puts
       puts "This auth token will last for 10 years, or when you choose to invalidate it, whichever comes first."
       puts
-      puts "Now either include these constants in yours calls to simple-dropbox, or set them as environment variables."
+      puts "Now either include these constants in yours calls to dbox, or set them as environment variables."
     end
 
     def connect(auth_key, auth_secret)

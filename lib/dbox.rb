@@ -2,8 +2,8 @@ ROOT_PATH = File.expand_path(File.join(File.dirname(__FILE__), ".."))
 $:.unshift File.join(ROOT_PATH, "lib")
 $:.unshift File.join(ROOT_PATH, "vendor", "dropbox-client-ruby", "lib")
 
-require "simple_dropbox/client_api"
-require "simple_dropbox/db"
+require "dbox/client_api"
+require "dbox/db"
 require "fileutils"
 
 # load config
@@ -13,13 +13,13 @@ CONF = Authenticator.load_config(CONFIG_FILE)
 # usage line
 def usage
   "Usage:
-  simple-dropbox authorize
+  dbox authorize
   export DROPBOX_AUTH_KEY=abcdef012345678
   export DROPBOX_AUTH_SECRET=876543210fedcba
-  simple-dropbox create <remote_path> [<local_path>]
-  simple-dropbox clone <remote_path> [<local_path>]
-  simple-dropbox pull
-  simple-dropbox push"
+  dbox create <remote_path> [<local_path>]
+  dbox clone <remote_path> [<local_path>]
+  dbox pull
+  dbox push"
 end
 def print_usage_and_quit; puts usage; exit 1; end
 
@@ -31,7 +31,7 @@ case command = ARGV[0]
 
 when "authorize"
   # get access tokens
-  DropboxSync::ClientAPI.authorize
+  Dbox::API.authorize
 
 when "create", "clone"
   # grab remote path
@@ -46,7 +46,7 @@ when "create", "clone"
   local_path = ARGV[2] || remote_path.split("/").last
 
   # execute create/clone
-  DropboxSync::Db.send(command, remote_path, local_path)
+  Dbox::Db.send(command, remote_path, local_path)
 
 when "pull", "push"
   # grab local path or use current directory
@@ -54,7 +54,7 @@ when "pull", "push"
   local_path = ARGV[1] || "."
 
   # load the db into memory
-  db = DropboxSync::Db.load(local_path)
+  db = Dbox::Db.load(local_path)
 
   # execute the push/pull
   db.send(command)

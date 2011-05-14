@@ -17,7 +17,7 @@ $ gem install dbox
 
 ### Get developer keys
 
-* Follow the instructions at https://www.dropbox.com/developers/quickstart to create a Dropbox development application, and copy the application keys.
+* Follow the instructions at https://www.dropbox.com/developers/quickstart to create a Dropbox development application, and copy the application keys. Unless you get your app approved for production status, these keys will only work with the account you create them under, so make sure you are logged in with the account you want to access from dbox.
 
 * Now either set the keys as environment variables:
 

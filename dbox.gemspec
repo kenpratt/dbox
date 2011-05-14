@@ -5,7 +5,7 @@
 
 Gem::Specification.new do |s|
   s.name = %q{dbox}
-  s.version = "0.1.0"
+  s.version = "0.2.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = [%q{Ken Pratt}]
@@ -25,11 +25,13 @@ Gem::Specification.new do |s|
     "TODO.txt",
     "VERSION",
     "bin/dbox",
+    "dbox.gemspec",
     "lib/dbox.rb",
     "lib/dbox/api.rb",
     "lib/dbox/db.rb",
-    "test/helper.rb",
-    "test/test_dbox.rb",
+    "lib/dbox/loggable.rb",
+    "spec/dbox_spec.rb",
+    "spec/spec_helper.rb",
     "vendor/dropbox-client-ruby/LICENSE",
     "vendor/dropbox-client-ruby/README",
     "vendor/dropbox-client-ruby/Rakefile",

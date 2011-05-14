@@ -1,10 +1,5 @@
-require "dbox/client_api"
-require "yaml"
-require "fileutils"
-require "time"
-
 module Dbox
-  class Db
+  class DB
     attr_accessor :local_path
 
     def self.create(remote_path, local_path)
@@ -36,6 +31,14 @@ module Dbox
       else
         raise "No DB file found in #{local_path}"
       end
+    end
+
+    def self.pull(local_path)
+      load(local_path).pull
+    end
+
+    def self.push(local_path)
+      load(local_path).push
     end
 
     # IMPORTANT: DropboxDb.new is private. Please use DropboxDb.create, DropboxDb.clone, or DropboxDb.load as the entry point.
@@ -193,7 +196,7 @@ module Dbox
 
       def saving_parent_timestamp(&proc)
         parent = File.dirname(local_path)
-        Db.saving_timestamp(parent, &proc)
+        DB.saving_timestamp(parent, &proc)
       end
 
       def api

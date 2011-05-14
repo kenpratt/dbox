@@ -64,13 +64,13 @@ $ dbox create <remote_path> [<local_path>]
 ### Pull (download changes from Dropbox)
 
 <pre>
-$ dbox pull
+$ dbox pull [<local_path>]
 </pre>
 
 ### Push (upload changes to Dropbox)
 
 <pre>
-$ dbox push
+$ dbox push [<local_path>]
 </pre>
 
 

@@ -1,7 +1,3 @@
-$:.unshift File.join(ROOT_PATH, "vendor", "dropbox-client-ruby", "lib")
-
-require "dropbox"
-
 module Dbox
   class API
     def self.connect(auth_key, auth_secret)

@@ -1,2 +1,2 @@
 #!/bin/sh
-ruby `dirname $0`/lib/dbox.rb $@
+ruby `dirname $0`/lib/dbox_cmd.rb $@

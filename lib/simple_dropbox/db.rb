@@ -4,48 +4,95 @@ require "time"
 
 module DropboxSync
   class Db
-    def self.bootstrap
-      case res = API.metadata(REMOTE_PATH)
+    attr_accessor :local_path
+
+    def self.create(remote_path, local_path)
+      puts "[db] Creating remote folder: #{remote_path}"
+      api.create_dir(remote_path)
+      clone(remote_path, local_path)
+    end
+
+    def self.clone(remote_path, local_path)
+      puts "[db] Cloning #{remote_path} into #{local_path}"
+      case res = api.metadata(remote_path)
       when Hash
-        # dir is there, create Db
-        new(res)
+        raise "Remote path error" unless remote_path == res["path"]
+        db = new(local_path, res)
+        db.pull
       when Net::HTTPNotFound
-        # create remote dir and try again
-        API.create_dir(REMOTE_PATH)
-        res = API.metadata(REMOTE_PATH)
-        new(res) if res.kind_of?(Hash)
+        raise "Remote path does not exist"
       else
-        raise "Bootstrap failed: unknown result #{res.inspect}"
+        raise "Clone failed: #{res.inspect}"
       end
     end
 
-    def self.load
-      if File.exists?(DB_FILE)
-        File.open(DB_FILE, "r") {|f| YAML::load(f.read) }
+    def self.load(local_path)
+      db_file = db_file(local_path)
+      if File.exists?(db_file)
+        db = File.open(db_file, "r") {|f| YAML::load(f.read) }
+        db.local_path = File.expand_path(local_path)
+        db
       else
-        self.bootstrap
+        raise "No DB file found in #{local_path}"
       end
     end
 
-    # IMPORTANT: DropboxDb.new is private. Please use DropboxDb.load as the entry point.
+    # IMPORTANT: DropboxDb.new is private. Please use DropboxDb.create, DropboxDb.clone, or DropboxDb.load as the entry point.
     private_class_method :new
-    def initialize(res)
-      @root = DropboxDir.new(res)
-      @root.update_file_timestamp
+    def initialize(local_path, res)
+      @local_path = File.expand_path(local_path)
+      @remote_path = res["path"]
+      FileUtils.mkdir_p(@local_path)
+      @root = DropboxDir.new(self, res)
+      save
     end
 
     def save
-      Db.saving_timestamp(LOCAL_PATH) do
-        File.open(DB_FILE, "w") {|f| f << YAML::dump(self) }
+      self.class.saving_timestamp(@local_path) do
+        File.open(db_file, "w") {|f| f << YAML::dump(self) }
       end
     end
 
     def pull
       @root.pull
+      save
     end
 
     def push
       @root.push
+      save
+    end
+
+    def local_to_relative_path(path)
+      if path.include?(@local_path)
+        path.sub(@local_path, "").sub(/^\//, "")
+      else
+        raise "Not a local path: #{path}"
+      end
+    end
+
+    def remote_to_relative_path(path)
+      if path.include?(@remote_path)
+        path.sub(@remote_path, "").sub(/^\//, "")
+      else
+        raise "Not a remote path: #{path}"
+      end
+    end
+
+    def relative_to_local_path(path)
+      if path.any?
+        File.join(@local_path, path)
+      else
+        @local_path
+      end
+    end
+
+    def relative_to_remote_path(path)
+      if path.any?
+        File.join(@remote_path, path)
+      else
+        @remote_path
+      end
     end
 
     def self.saving_timestamp(path)
@@ -54,11 +101,35 @@ module DropboxSync
       File.utime(Time.now, mtime, path)
     end
 
+    def self.api
+      unless @api
+        auth_key = ENV["DROPBOX_AUTH_KEY"]
+        auth_secret = ENV["DROPBOX_AUTH_SECRET"]
+        raise("Must set DROPBOX_AUTH_KEY environment variable to an authenticated Dropbox session key") unless auth_key
+        raise("Must set DROPBOX_AUTH_SECRET environment variable to an authenticated Dropbox session secret") unless auth_secret
+        @api = DropboxSync::ClientAPI.connect(auth_key, auth_secret)
+      end
+      @api
+    end
+
+    def api
+      self.class.api
+    end
+
+    def self.db_file(local_path)
+      File.join(local_path, CONF["db_file"])
+    end
+
+    def db_file
+      self.class.db_file(@local_path)
+    end
+
     class DropboxBlob
       attr_reader :path, :revision, :modified_at
 
-      def initialize(res)
-        @path = res["path"]
+      def initialize(db, res)
+        @db = db
+        @path = @db.remote_to_relative_path(res["path"])
         update_modification_info(res)
       end
 
@@ -77,39 +148,26 @@ module DropboxSync
         end
       end
 
-      def self.smart_new(res)
+      def smart_new(res)
         if res["is_dir"]
-          DropboxDir.new(res)
+          DropboxDir.new(@db, res)
         else
-          DropboxFile.new(res)
+          DropboxFile.new(@db, res)
         end
       end
 
       def update(res)
-        raise "bad path" unless @path == res["path"]
+        raise "bad path (#{remote_path} != #{res["path"]})" unless remote_path == res["path"]
         raise "mode on #{@path} changed between file and dir -- not supported yet" unless dir? == res["is_dir"] # TODO handle change from dir to file or vice versa?
         update_modification_info(res)
       end
 
-      def rel_path
-        path.sub(/^#{REMOTE_PATH}\/?/, "")
+      def local_path
+        @db.relative_to_local_path(@path)
       end
 
-      def self.filepath(rel_path)
-        File.join(LOCAL_PATH, rel_path)
-      end
-
-      def self.remote_path(rel)
-        case rel
-        when ""
-          REMOTE_PATH
-        else
-          File.join(REMOTE_PATH, rel)
-        end
-      end
-
-      def filepath
-        self.class.filepath(rel_path)
+      def remote_path
+        @db.relative_to_remote_path(@path)
       end
 
       def dir?
@@ -129,22 +187,26 @@ module DropboxSync
       end
 
       def update_file_timestamp
-        File.utime(Time.now, modified_at, filepath)
+        File.utime(Time.now, modified_at, local_path)
       end
 
       def saving_parent_timestamp(&proc)
-        parent = File.dirname(filepath)
+        parent = File.dirname(local_path)
         Db.saving_timestamp(parent, &proc)
+      end
+
+      def api
+        @db.api
       end
     end
 
     class DropboxDir < DropboxBlob
       attr_reader :contents_hash, :contents
 
-      def initialize(res)
+      def initialize(db, res)
         @contents_hash = nil
         @contents = {}
-        super(res)
+        super(db, res)
       end
 
       def update(res)
@@ -160,7 +222,7 @@ module DropboxSync
               new_entry.update(c)
               [c["path"], new_entry]
             else
-              [c["path"], DropboxBlob.smart_new(c)]
+              [c["path"], smart_new(c)]
             end
           end
           @contents = Hash[new_contents_arr]
@@ -174,8 +236,8 @@ module DropboxSync
       def pull
         prev = self.clone
         prev.freeze
-        puts "[db] pulling #{path}"
-        res = API.metadata(path)
+        puts "[db] pulling"
+        res = api.metadata(remote_path)
         update(res)
         if contents_hash != prev.contents_hash
           reconcile(prev, :down)
@@ -186,8 +248,8 @@ module DropboxSync
       def push
         prev = self.clone
         prev.freeze
-        puts "[db] pushing #{path}"
-        res = gather_info(rel_path)
+        puts "[db] pushing"
+        res = gather_info(@path)
         update(res)
         reconcile(prev, :up)
         subdirs.each {|d| d.push }
@@ -219,17 +281,20 @@ module DropboxSync
       end
 
       def gather_info(rel, list_contents=true)
-        full = self.class.filepath(rel)
+        full = @db.relative_to_local_path(rel)
+        remote = @db.relative_to_remote_path(rel)
+
         attrs = {
-          "path" => self.class.remote_path(rel),
+          "path" => remote,
           "is_dir" => File.directory?(full),
           "modified" => File.mtime(full)
         }
 
         if attrs["is_dir"] && list_contents
-          contents = Dir.chdir(full) { Dir["*"] }
+          contents = Dir[File.join(full, "*")]
           attrs["contents"] = contents.map do |f|
-            gather_info(File.join(rel, f), false)
+            r = @db.local_to_relative_path(f)
+            gather_info(r, false)
           end
         end
 
@@ -241,31 +306,31 @@ module DropboxSync
       end
 
       def create_local
-        puts "[fs] creating dir #{filepath}"
+        puts "[fs] creating dir #{local_path}"
         saving_parent_timestamp do
-          FileUtils.mkdir_p(filepath)
+          FileUtils.mkdir_p(local_path)
           update_file_timestamp
         end
       end
 
       def delete_local
-        puts "[fs] deleting dir #{filepath}"
+        puts "[fs] deleting dir #{local_path}"
         saving_parent_timestamp do
-          FileUtils.rm_r(filepath)
+          FileUtils.rm_r(local_path)
         end
       end
 
       def update_local
-        puts "[fs] updating dir #{filepath}"
+        puts "[fs] updating dir #{local_path}"
         update_file_timestamp
       end
 
       def create_remote
-        API.create_dir(path)
+        api.create_dir(remote_path)
       end
 
       def delete_remote
-        API.delete_dir(path)
+        api.delete_dir(remote_path)
       end
 
       def update_remote
@@ -292,7 +357,7 @@ module DropboxSync
       end
 
       def create_local
-        puts "[fs] creating file #{filepath}"
+        puts "[fs] creating file #{local_path}"
         saving_parent_timestamp do
           download
           update_file_timestamp
@@ -300,14 +365,14 @@ module DropboxSync
       end
 
       def delete_local
-        puts "[fs] deleting file #{filepath}"
+        puts "[fs] deleting file #{local_path}"
         saving_parent_timestamp do
-          FileUtils.rm_rf(filepath)
+          FileUtils.rm_rf(local_path)
         end
       end
 
       def update_local
-        puts "[fs] updating file #{filepath}"
+        puts "[fs] updating file #{local_path}"
         download
         update_file_timestamp
       end
@@ -317,7 +382,7 @@ module DropboxSync
       end
 
       def delete_remote
-        API.delete_file(path)
+        api.delete_file(remote_path)
       end
 
       def update_remote
@@ -325,17 +390,17 @@ module DropboxSync
       end
 
       def download
-        res = API.get_file(path)
+        res = api.get_file(remote_path)
 
-        File.open(filepath, "w") do |f|
+        File.open(local_path, "w") do |f|
           f << res
         end
         update_file_timestamp
       end
 
       def upload
-        File.open(filepath) do |f|
-          res = API.put_file(path, f)
+        File.open(local_path) do |f|
+          res = api.put_file(remote_path, f)
         end
       end
     end

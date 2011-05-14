@@ -1,2 +1,2 @@
 #!/bin/sh
-cd `dirname $0` && ruby lib/simple_dropbox.rb $@
+ruby `dirname $0`/lib/simple_dropbox.rb $@

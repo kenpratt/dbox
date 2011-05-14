@@ -8,7 +8,5 @@
   "consumer_key": "abcdef012345678",
   "consumer_secret": "876543210fedcba",
   "root": "dropbox",
-  "db_file": ".dropbox.db",
-  "remote_path": "/Public",
-  "local_path": "data/Public"
+  "db_file": ".dropbox.db"
 }

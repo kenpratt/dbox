@@ -30,12 +30,13 @@ http://www.dropbox.com/0/oauth/authorize?oauth_token=oeunsth23censth
 
 When you have done so, press [ENTER] to continue.
 
-DROPBOX_AUTH_KEY=abcdef012345678
-DROPBOX_AUTH_SECRET=0123456789abcdefg
+export DROPBOX_AUTH_KEY=abcdef012345678
+export DROPBOX_AUTH_SECRET=0123456789abcdefg
 
 This auth token will last for 10 years, or when you choose to invalidate it, whichever comes first.
 
-Now either include these constants in yours calls to simple-dropbox, or set them as environment variables.
+Now either include these constants in yours calls to simple-dropbox, or set them as environment variables. In bash, including them in calls looks like:
+$ DROPBOX_AUTH_KEY="abcdef012345678" DROPBOX_AUTH_SECRET="0123456789abcdefg" simple-dropbox ...
 </pre>
 
 
@@ -48,26 +49,47 @@ Usage
 $ simple-dropbox authorize
 </pre>
 
-### Pull using paths set in config file
+### Clone an existing Dropbox folder
 
 <pre>
-$ DROPBOX_AUTH_KEY="abcdef012345678" DROPBOX_AUTH_SECRET="0123456789abcdefg" simple-dropbox pull
+$ simple-dropbox clone <remote_path> [<local_path>]
 </pre>
 
-### Push using paths set in config file
+### Create a new Dropbox folder
 
 <pre>
-$ DROPBOX_AUTH_KEY="abcdef012345678" DROPBOX_AUTH_SECRET="0123456789abcdefg" simple-dropbox push
+$ simple-dropbox create <remote_path> [<local_path>]
 </pre>
 
-### Pull using custom paths
+### Pull (download changes from Dropbox)
 
 <pre>
-$ DROPBOX_AUTH_KEY="abcdef012345678" DROPBOX_AUTH_SECRET="0123456789abcdefg" simple-dropbox pull -r /Custom -l /path/to/custom
+$ simple-dropbox pull
 </pre>
 
-### Push using custom paths
+### Push (upload changes to Dropbox)
 
 <pre>
-$ DROPBOX_AUTH_KEY="abcdef012345678" DROPBOX_AUTH_SECRET="0123456789abcdefg" simple-dropbox push -r /Custom -l /path/to/custom
+$ simple-dropbox push
 </pre>
+
+
+Example
+-------
+
+<pre>
+$ simple-dropbox authorize
+(visit website, come back and press enter)
+
+$ export DROPBOX_AUTH_KEY=abcdef012345678
+$ export DROPBOX_AUTH_SECRET=0123456789abcdefg
+
+$ cd /tmp
+$ simple-dropbox clone Public
+$ cd Public
+$ echo "hello world" > hello.txt
+$ simple-dropbox push
+
+(now edit hello.txt from your dropbox folder)
+$ simple-dropbox pull
+$ cat hello.txt

@@ -21,8 +21,8 @@ module DropboxSync
       puts "Please visit the following URL in your browser, log into Dropbox, and authorize the app you created.\n\n#{authorize_url}\n\nWhen you have done so, press [ENTER] to continue."
       STDIN.readline
       res = auth.get_access_token
-      puts "DROPBOX_AUTH_KEY=#{res.token}"
-      puts "DROPBOX_AUTH_SECRET=#{res.secret}"
+      puts "export DROPBOX_AUTH_KEY=#{res.token}"
+      puts "export DROPBOX_AUTH_SECRET=#{res.secret}"
       puts
       puts "This auth token will last for 10 years, or when you choose to invalidate it, whichever comes first."
       puts

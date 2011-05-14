@@ -42,7 +42,7 @@ module Dbox
   def self.clean_remote_path(path)
     if path
       path.sub(/\/$/,'')
-      path[0] == "/" ? path : "/#{path}"
+      path[0].chr == "/" ? path : "/#{path}"
     else
       raise "Missing remote path"
     end

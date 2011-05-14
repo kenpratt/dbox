@@ -1,7 +1,6 @@
 * Look down directory tree until you hit a .dropbox.db file
-* Solve upload -> re-download issue
 * Put pull, push, etc in begin blocks and rescue => save to avoid half-baked repos
 * Detect old db format and migrate
 * Add "move" command (that renames remote)
 * Add a "sync" command that pushes and pulls in one go
-* Add support for partial push/pull? (also, make it defoult behaviour from subdir?)
+* Add support for partial push/pull

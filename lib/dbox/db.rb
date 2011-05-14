@@ -192,6 +192,15 @@ module Dbox
         File.utime(Time.now, modified_at, local_path)
       end
 
+      # this downloads the metadata about this blob from the server and
+      # overwrites the metadata & timestamp
+      # IMPORTANT: should only be called if you are CERTAIN the file is up to date
+      def force_metadata_update_from_server
+        res = api.metadata(remote_path)
+        update_modification_info(res)
+        update_file_timestamp
+      end
+
       def saving_parent_timestamp(&proc)
         parent = File.dirname(local_path)
         DB.saving_timestamp(parent, &proc)
@@ -337,6 +346,7 @@ module Dbox
 
       def create_remote
         api.create_dir(remote_path)
+        force_metadata_update_from_server
       end
 
       def delete_remote
@@ -370,7 +380,6 @@ module Dbox
         log.info "Creating file: #{local_path}"
         saving_parent_timestamp do
           download
-          update_file_timestamp
         end
       end
 
@@ -384,7 +393,6 @@ module Dbox
       def update_local
         log.info "Updating file: #{local_path}"
         download
-        update_file_timestamp
       end
 
       def create_remote
@@ -412,6 +420,7 @@ module Dbox
         File.open(local_path) do |f|
           res = api.put_file(remote_path, f)
         end
+        force_metadata_update_from_server
       end
     end
   end

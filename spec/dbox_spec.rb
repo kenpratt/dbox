@@ -80,10 +80,34 @@ describe Dbox do
       Dbox.create(@remote, @local)
       touch "#{@local}/hello.txt"
       Dbox.push(@local).should eql(:created => ["hello.txt"], :deleted => [], :updated => [])
-      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => ["hello.txt"])
       rm "#{@local}/hello.txt"
       Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [])
       "#{@local}/hello.txt".should_not exist
+    end
+
+    it "should handle a complex set of changes" do
+      Dbox.create(@remote, @local)
+
+      @alternate = "#{ALTERNATE_LOCAL_TEST_PATH}/#{@name}"
+      Dbox.clone(@remote, @alternate)
+
+      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [])
+
+      touch "#{@alternate}/foo.txt"
+      touch "#{@alternate}/bar.txt"
+      touch "#{@alternate}/baz.txt"
+      Dbox.push(@alternate).should eql(:created => ["bar.txt", "baz.txt", "foo.txt"], :deleted => [], :updated => [])
+
+      Dbox.pull(@local).should eql(:created => ["bar.txt", "baz.txt", "foo.txt"], :deleted => [], :updated => [])
+
+      sleep 1
+      mkdir "#{@alternate}/subdir"
+      touch "#{@alternate}/subdir/one.txt"
+      rm "#{@alternate}/foo.txt"
+      File.open("#{@alternate}/baz.txt", "w") {|f| f << "baaz" }
+      Dbox.push(@alternate).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => ["foo.txt"], :updated => ["baz.txt"])
+
+      Dbox.pull(@local).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => ["foo.txt"], :updated => ["baz.txt"])
     end
   end
 
@@ -117,6 +141,45 @@ describe Dbox do
       mkdir "#{@local}/subdir"
       touch "#{@local}/subdir/foo.txt"
       Dbox.push(@local).should eql(:created => ["subdir", "subdir/foo.txt"], :deleted => [], :updated => [])
+    end
+
+    it "should not re-download the file after creating" do
+      Dbox.create(@remote, @local)
+      touch "#{@local}/foo.txt"
+      Dbox.push(@local).should eql(:created => ["foo.txt"], :deleted => [], :updated => [])
+      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [])
+    end
+
+    it "should not re-download the file after updating" do
+      Dbox.create(@remote, @local)
+      touch "#{@local}/foo.txt"
+      Dbox.push(@local).should eql(:created => ["foo.txt"], :deleted => [], :updated => [])
+      sleep 1
+      File.open("#{@local}/foo.txt", "w") {|f| f << "fooz" }
+      Dbox.push(@local).should eql(:created => [], :deleted => [], :updated => ["foo.txt"])
+      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [])
+    end
+
+    it "should not re-download the dir after creating" do
+      Dbox.create(@remote, @local)
+      mkdir "#{@local}/subdir"
+      Dbox.push(@local).should eql(:created => ["subdir"], :deleted => [], :updated => [])
+      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [])
+    end
+
+    it "should handle a complex set of changes" do
+      Dbox.create(@remote, @local)
+      touch "#{@local}/foo.txt"
+      touch "#{@local}/bar.txt"
+      touch "#{@local}/baz.txt"
+      Dbox.push(@local).should eql(:created => ["bar.txt", "baz.txt", "foo.txt"], :deleted => [], :updated => [])
+      sleep 1
+      mkdir "#{@local}/subdir"
+      touch "#{@local}/subdir/one.txt"
+      rm "#{@local}/foo.txt"
+      touch "#{@local}/baz.txt"
+      Dbox.push(@local).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => ["foo.txt"], :updated => ["baz.txt"])
+      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [])
     end
   end
 end

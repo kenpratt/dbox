@@ -1,4 +1,3 @@
-* Improve usage info dump on command line
 * More helpers in specs (and string style paths instead of join all over the place)
 * Have pull, push, etc return a list of changed files
 * Look down directory tree until you hit a .dropbox.db file

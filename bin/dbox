@@ -5,14 +5,26 @@ require "dbox"
 
 # usage line
 def usage
-  "Usage:
-  dbox authorize
-  export DROPBOX_AUTH_KEY=abcdef012345678
-  export DROPBOX_AUTH_SECRET=876543210fedcba
-  dbox create <remote_path> [<local_path>]
-  dbox clone <remote_path> [<local_path>]
-  dbox pull
-  dbox push"
+  <<_EOF
+Usage: dbox <commond> [<args>]
+
+Commands:
+  authorize                            Generate auth keys
+  create <remote_path> [<local_path>]  Create a new Dropbox folder
+  clone <remote_path> [<local_path>]   Clone an existing Dropbox folder
+  pull [<local_path>]                  Pull chonges from Dropbox
+  push [<local_path>]                  Push changes to Dropbox
+
+Environment varables needed for everything:
+  export DROPBOX_APP_KEY=cmlrrjd3j0gbend
+  export DROPBOX_APP_SECRET=uvuulp75xf9jffl
+
+Environment varables needed for everything other than authorize:
+  export DROPBOX_AUTH_KEY=v4d7l1rez1czksn
+  export DROPBOX_AUTH_SECRET=pqej9rmnj0i1gcxr4
+
+See http://github.com/kenpratt/dbox for examples and more information
+_EOF
 end
 def print_usage_and_quit; puts usage; exit 1; end
 

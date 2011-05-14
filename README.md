@@ -71,16 +71,16 @@ Usage
 $ dbox authorize
 ```
 
-### Clone an existing Dropbox folder
-
-```sh
-$ dbox clone <remote_path> [<local_path>]
-```
-
 ### Create a new Dropbox folder
 
 ```sh
 $ dbox create <remote_path> [<local_path>]
+```
+
+### Clone an existing Dropbox folder
+
+```sh
+$ dbox clone <remote_path> [<local_path>]
 ```
 
 ### Pull (download changes from Dropbox)

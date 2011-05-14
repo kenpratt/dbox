@@ -23,6 +23,8 @@ module Dbox
       puts "This auth token will last for 10 years, or when you choose to invalidate it, whichever comes first."
       puts
       puts "Now either include these constants in yours calls to dbox, or set them as environment variables."
+      puts "In bash, including them in calls looks like:"
+      puts "$ DROPBOX_AUTH_KEY=#{res.token} DROPBOX_AUTH_SECRET=#{res.secret} dbox ..."
     end
 
     def connect(auth_key, auth_secret)

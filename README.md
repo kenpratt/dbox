@@ -26,7 +26,7 @@ $ edit config/dropbox.json
 $ dbox authorize
 Please visit the following URL in your browser, log into Dropbox, and authorize the app you created.
 
-http://www.dropbox.com/0/oauth/authorize?oauth_token=oeunsth23censth
+http://www.dropbox.com/0/oauth/authorize?oauth_token=j2kuzfvobcpqh0g
 
 When you have done so, press [ENTER] to continue.
 
@@ -35,8 +35,9 @@ export DROPBOX_AUTH_SECRET=0123456789abcdefg
 
 This auth token will last for 10 years, or when you choose to invalidate it, whichever comes first.
 
-Now either include these constants in yours calls to dbox, or set them as environment variables. In bash, including them in calls looks like:
-$ DROPBOX_AUTH_KEY="abcdef012345678" DROPBOX_AUTH_SECRET="0123456789abcdefg" dbox ...
+Now either include these constants in yours calls to dbox, or set them as environment variables.
+In bash, including them in calls looks like:
+$ DROPBOX_AUTH_KEY=abcdef012345678 DROPBOX_AUTH_SECRET=0123456789abcdefg dbox ...
 </pre>
 
 

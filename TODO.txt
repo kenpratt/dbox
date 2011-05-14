@@ -1,9 +1,5 @@
-* Create should fail if the remote already exists
-* Remove ability to specify local repo path from executable
-* Force you to to specify local repo path from Ruby
 * More helpers in specs (and interpolated paths instead of File.join all over the place)
 * Have pull, push, etc return a list of changed files
-* Add a Ruby example (in addition to command-line example)
 * Look down directory tree until you hit a .dropbox.db file
 * Solve upload -> re-download issue
 * Put pull, push, etc in begin blocks and rescue => save to avoid half-baked repos

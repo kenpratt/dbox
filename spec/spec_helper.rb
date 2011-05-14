@@ -4,8 +4,10 @@ require "rspec"
 require "dbox"
 require "fileutils"
 
-TEST_REPO_DIR = File.expand_path(File.join(File.dirname(__FILE__), "..", "tmp", "test_repos"))
-FileUtils.mkdir_p(TEST_REPO_DIR)
+LOCAL_TEST_PATH = File.expand_path(File.join(File.dirname(__FILE__), "..", "tmp", "test_dirs"))
+FileUtils.mkdir_p(LOCAL_TEST_PATH)
+
+REMOTE_TEST_PATH = "/dbox_test_dirs"
 
 def randname
   u = `uuidgen`.chomp

@@ -1,5 +1,6 @@
 config/dropbox.json
 pkg
+tmp
 .DS_Store
 *~
 \#*

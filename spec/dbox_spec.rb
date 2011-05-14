@@ -74,6 +74,17 @@ describe Dbox do
       expect { Dbox.pull(@local) }.to_not raise_error
       File.exists?("#{@local}/hello.txt").should be_true
     end
+
+    it "should be able to pull after deleting a file and not have the file re-created" do
+      Dbox.create(@remote)
+      cd @name
+      touch "hello.txt"
+      Dbox.push
+      Dbox.pull
+      rm "hello.txt"
+      Dbox.pull
+      File.exists?("#{@local}/hello.txt").should be_false
+    end
   end
 
   describe "#push" do

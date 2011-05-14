@@ -54,8 +54,7 @@ module Dbox
           raise "Unexpected result from GET /metadata: #{res.inspect}"
         end
       rescue DropboxError => e
-        puts e.inspect
-        raise "Server error -- might be a hiccup, please try your request again"
+        raise "Server error -- might be a hiccup, please try your request again (#{e.message})"
       end
     end
 

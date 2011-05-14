@@ -10,7 +10,6 @@ module Dbox
     attr_accessor :local_path
 
     def self.create(remote_path, local_path)
-      log.info "Creating remote folder: #{remote_path}"
       api.create_dir(remote_path)
       clone(remote_path, local_path)
     end
@@ -325,7 +324,6 @@ module Dbox
       end
 
       def create_local
-        log.info "Creating dir: #{local_path}"
         saving_parent_timestamp do
           FileUtils.mkdir_p(local_path)
           update_file_timestamp
@@ -340,7 +338,6 @@ module Dbox
       end
 
       def update_local
-        log.info "Updating dir: #{local_path}"
         update_file_timestamp
       end
 
@@ -377,7 +374,6 @@ module Dbox
       end
 
       def create_local
-        log.info "Creating file: #{local_path}"
         saving_parent_timestamp do
           download
         end
@@ -391,7 +387,6 @@ module Dbox
       end
 
       def update_local
-        log.info "Updating file: #{local_path}"
         download
       end
 

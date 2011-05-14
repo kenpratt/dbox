@@ -1,0 +1,9 @@
+F LICENSE eee4b82f8ec32762095d12613d633f24ac242ebe
+F README da39a3ee5e6b4b0d3255bfef95601890afd80709
+F Rakefile 30ac5c2002b9bccb9064e956fefa88f687e6d719
+F config/testing.json.example 4f833212f80566278dfe78c216f05f16db92ce4d
+F example/test_pingback.rb 082e0b515333e3c495e1b3cbce179a4e7c69bd6b
+F lib/dropbox.rb d7d8960fb725f046b83f17fe54f64f603fbb2cf6
+F test/authenticator_test.rb b476e8fbbaa73cf6d1db227c549e43860e85f60b
+F test/client_test.rb aa34080cc5dcb369d39f0fa4c602be89100a535b
+F test/util.rb 0d49786886f9aee3b2f60ba1f56e7f861b3480b4

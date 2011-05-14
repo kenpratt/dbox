@@ -1,0 +1,16 @@
+{
+"server": "api.dropbox.com",
+"content_server": "api-content.dropbox.com",
+"port": 80,
+"request_token_url": "http://api.dropbox.com/0/oauth/request_token",
+"access_token_url": "http://api.dropbox.com/0/oauth/access_token",
+"authorization_url": "http://www.dropbox.com/0/oauth/authorize",
+"consumer_key": "YOUR CONSUMER KEY",
+"consumer_secret": "YOUR CONSUMER SECRET",
+"verifier": "",
+"testing_user": "USER TO TEST WITH",
+"testing_password": "PASSWORD",
+"root": "dropbox"
+}
+
+

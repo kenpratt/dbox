@@ -1,0 +1,15 @@
+Getting started with the Dropbox ruby library:
+1. Make sure you have rake and rubygems installed on your system.
+1b. Some of the gems below may need to be compiled locally, so make sure you
+    have any necessary source code around as well.
+    e.g. 'apt-get install ruby1.x-dev libxml2-dev libxslt1-dev' on ubuntu
+2. Install oauth from rubygems
+3. Install multipart-post from rubygems
+4. Install json from rubygems
+5. Install mechanize from rubygems
+6. Install shoulda from rubygems
+7. Copy config/testing.json.example to config/testing.json
+8. In config/testing.json enter your application's consumer key, secret key,
+   and your test user email and password.
+9. Run 'rake test_units' to make sure all the tests pass.
+10. Start developing your Dropbox API application!

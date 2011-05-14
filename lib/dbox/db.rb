@@ -1,4 +1,7 @@
 module Dbox
+  class MissingDatabase < RuntimeError; end
+  class BadPath < RuntimeError; end
+
   class DB
     include Loggable
 
@@ -15,7 +18,7 @@ module Dbox
     def self.clone(remote_path, local_path)
       log.info "Cloning #{remote_path} into #{local_path}"
       res = api.metadata(remote_path)
-      raise "Remote path error" unless remote_path == res["path"]
+      raise(BadPath, "Remote path error") unless remote_path == res["path"]
       db = new(local_path, res)
       db.pull
     end
@@ -27,7 +30,7 @@ module Dbox
         db.local_path = File.expand_path(local_path)
         db
       else
-        raise "No DB file found in #{local_path}"
+        raise MissingDatabase, "No DB file found in #{local_path}"
       end
     end
 
@@ -69,7 +72,7 @@ module Dbox
       if path.include?(@local_path)
         path.sub(@local_path, "").sub(/^\//, "")
       else
-        raise "Not a local path: #{path}"
+        raise BadPath, "Not a local path: #{path}"
       end
     end
 
@@ -77,7 +80,7 @@ module Dbox
       if path.include?(@remote_path)
         path.sub(@remote_path, "").sub(/^\//, "")
       else
-        raise "Not a remote path: #{path}"
+        raise BadPath, "Not a remote path: #{path}"
       end
     end
 
@@ -154,8 +157,8 @@ module Dbox
       end
 
       def update(res)
-        raise "bad path (#{remote_path} != #{res["path"]})" unless remote_path == res["path"]
-        raise "mode on #{@path} changed between file and dir -- not supported yet" unless dir? == res["is_dir"] # TODO handle change from dir to file or vice versa?
+        raise(BadPath, "Bad path (#{remote_path} != #{res["path"]})") unless remote_path == res["path"]
+        raise(RuntimeError, "Mode on #{@path} changed between file and dir -- not supported yet") unless dir? == res["is_dir"]
         update_modification_info(res)
       end
 
@@ -168,16 +171,16 @@ module Dbox
       end
 
       def dir?
-        raise "not implemented"
+        raise RuntimeError, "Not implemented"
       end
 
-      def create_local; raise "not implemented"; end
-      def delete_local; raise "not implemented"; end
-      def update_local; raise "not implemented"; end
+      def create_local; raise RuntimeError, "Not implemented"; end
+      def delete_local; raise RuntimeError, "Not implemented"; end
+      def update_local; raise RuntimeError, "Not implemented"; end
 
-      def create_remote; raise "not implemented"; end
-      def delete_remote; raise "not implemented"; end
-      def update_remote; raise "not implemented"; end
+      def create_remote; raise RuntimeError, "Not implemented"; end
+      def delete_remote; raise RuntimeError, "Not implemented"; end
+      def update_remote; raise RuntimeError, "Not implemented"; end
 
       def modified?(last)
         !(revision == last.revision && modified_at == last.modified_at)
@@ -207,7 +210,7 @@ module Dbox
       end
 
       def update(res)
-        raise "not a directory" unless res["is_dir"]
+        raise(ArgumentError, "Not a directory: #{res.inspect}") unless res["is_dir"]
         super(res)
         @contents_hash = res["hash"] if res.has_key?("hash")
         if res.has_key?("contents")
@@ -273,7 +276,7 @@ module Dbox
           created_paths.each {|p| contents[p].create_remote }
           stale_paths.each {|p| contents[p].update_remote }
         else
-          raise "Invalid direction: #{direction.inspect}"
+          raise(ArgumentError, "Invalid sync direction: #{direction.inspect}")
         end
       end
 

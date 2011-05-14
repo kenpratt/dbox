@@ -1,4 +1,9 @@
 module Dbox
+  class ConfigurationError < RuntimeError; end
+  class ServerError < RuntimeError; end
+  class RemoteMissing < RuntimeError; end
+  class RequestDenied < RuntimeError; end
+
   class API
     include Loggable
 
@@ -34,60 +39,75 @@ module Dbox
       auth_key = ENV["DROPBOX_AUTH_KEY"]
       auth_secret = ENV["DROPBOX_AUTH_SECRET"]
 
-      raise("Please set the DROPBOX_AUTH_KEY environment variable to an authenticated Dropbox session key") unless auth_key
-      raise("Please set the DROPBOX_AUTH_SECRET environment variable to an authenticated Dropbox session secret") unless auth_secret
+      raise(ConfigurationError, "Please set the DROPBOX_AUTH_KEY environment variable to an authenticated Dropbox session key") unless auth_key
+      raise(ConfigurationError, "Please set the DROPBOX_AUTH_SECRET environment variable to an authenticated Dropbox session secret") unless auth_secret
 
       @auth = Authenticator.new(@conf, auth_key, auth_secret)
       @client = DropboxClient.new(@conf["server"], @conf["content_server"], @conf["port"], @auth)
     end
 
-    def metadata(path = "/")
+    def run(path)
       path = escape_path(path)
-      log.debug "Fetching metadata for #{path}"
       begin
-        case res = @client.metadata(@conf["root"], path)
+        case res = (yield path)
         when Hash
           res
+        when String
+          res
         when Net::HTTPNotFound
-          raise "Remote path does not exist"
+          raise RemoteMissing, "#{path} does not exist on Dropbox"
+        when Net::HTTPForbidden
+          raise RequestDenied, "Request for #{path} denied"
         else
-          raise "Unexpected result from GET /metadata: #{res.inspect}"
+          raise RuntimeError, "Unexpected result: #{res.inspect}"
         end
       rescue DropboxError => e
-        raise "Server error -- might be a hiccup, please try your request again (#{e.message})"
+        raise ServerError, "Server error -- might be a hiccup, please try your request again (#{e.message})"
+      end
+    end
+
+    def metadata(path = "/")
+      log.debug "Fetching metadata for #{path}"
+      run(path) do |path|
+        @client.metadata(@conf["root"], path)
       end
     end
 
     def create_dir(path)
-      path = escape_path(path)
       log.info "Creating #{path}"
-      @client.file_create_folder(@conf["root"], path)
+      run(path) do |path|
+        @client.file_create_folder(@conf["root"], path)
+      end
     end
 
     def delete_dir(path)
-      path = escape_path(path)
       log.info "Deleting #{path}"
-      @client.file_delete(@conf["root"], path)
+      run(path) do |path|
+        @client.file_delete(@conf["root"], path)
+      end
     end
 
     def get_file(path)
-      path = escape_path(path)
       log.info "Downloading #{path}"
-      @client.get_file(@conf["root"], path)
+      run(path) do |path|
+        @client.get_file(@conf["root"], path)
+      end
     end
 
     def put_file(path, file_obj)
-      path = escape_path(path)
       log.info "Uploading #{path}"
-      dir = File.dirname(path)
-      name = File.basename(path)
-      @client.put_file(@conf["root"], dir, name, file_obj)
+      run(path) do |path|
+        dir = File.dirname(path)
+        name = File.basename(path)
+        @client.put_file(@conf["root"], dir, name, file_obj)
+      end
     end
 
     def delete_file(path)
-      path = escape_path(path)
       log.info "Deleting #{path}"
-      @client.file_delete(@conf["root"], path)
+      run(path) do |path|
+        @client.file_delete(@conf["root"], path)
+      end
     end
 
     def escape_path(path)
@@ -98,8 +118,8 @@ module Dbox
       app_key = ENV["DROPBOX_APP_KEY"]
       app_secret = ENV["DROPBOX_APP_SECRET"]
 
-      raise("Please set the DROPBOX_APP_KEY environment variable to a Dropbox application key") unless app_key
-      raise("Please set the DROPBOX_APP_SECRET environment variable to a Dropbox application secret") unless app_secret
+      raise(ConfigurationError, "Please set the DROPBOX_APP_KEY environment variable to a Dropbox application key") unless app_key
+      raise(ConfigurationError, "Please set the DROPBOX_APP_SECRET environment variable to a Dropbox application secret") unless app_secret
 
       {
         "server"            => "api.dropbox.com",

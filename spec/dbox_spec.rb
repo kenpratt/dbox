@@ -34,20 +34,20 @@ describe Dbox do
     end
 
     it "should fail if the remote does not exist" do
-      expect { Dbox.clone(@remote) }.to raise_error("Remote path does not exist")
+      expect { Dbox.clone(@remote) }.to raise_error(Dbox::RemoteMissing)
       File.exists?(@local).should be_false
     end
   end
 
   describe "#pull" do
     it "should fail if the local dir is missing" do
-      expect { Dbox.pull(@local) }.to raise_error(/No DB file found/)
+      expect { Dbox.pull(@local) }.to raise_error(Dbox::MissingDatabase)
     end
 
     it "should fail if the remote dir is missing" do
       Dbox.create(@remote)
       modify_dbfile {|s| s.sub(/^remote_path: \/.*$/, "remote_path: /#{randname()}") }
-      expect { Dbox.pull(@local) }.to raise_error("Remote path does not exist")
+      expect { Dbox.pull(@local) }.to raise_error(Dbox::RemoteMissing)
     end
 
     it "should be able to pull" do
@@ -89,7 +89,7 @@ describe Dbox do
 
   describe "#push" do
     it "should fail if the local dir is missing" do
-      expect { Dbox.push(@local) }.to raise_error(/No DB file found/)
+      expect { Dbox.push(@local) }.to raise_error(Dbox::MissingDatabase)
     end
 
     it "should be able to push" do

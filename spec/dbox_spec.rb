@@ -60,12 +60,7 @@ describe Dbox do
 
     it "should be able to pull" do
       Dbox.create(@remote, @local)
-      expect { Dbox.pull(@local) }.to_not raise_error
-    end
-
-    it "should be able to pull from inside the dir" do
-      Dbox.create(@remote, @local)
-      expect { Dbox.pull(@local) }.to_not raise_error
+      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [])
     end
 
     it "should be able to pull changes" do
@@ -75,19 +70,19 @@ describe Dbox do
       @alternate = "#{ALTERNATE_LOCAL_TEST_PATH}/#{@name}"
       Dbox.clone(@remote, @alternate)
       touch "#{@alternate}/hello.txt"
-      Dbox.push(@alternate)
+      Dbox.push(@alternate).should eql(:created => ["hello.txt"], :deleted => [], :updated => [])
 
-      expect { Dbox.pull(@local) }.to_not raise_error
+      Dbox.pull(@local).should eql(:created => ["hello.txt"], :deleted => [], :updated => [])
       "#{@local}/hello.txt".should exist
     end
 
     it "should be able to pull after deleting a file and not have the file re-created" do
       Dbox.create(@remote, @local)
       touch "#{@local}/hello.txt"
-      Dbox.push(@local)
-      Dbox.pull(@local)
+      Dbox.push(@local).should eql(:created => ["hello.txt"], :deleted => [], :updated => [])
+      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => ["hello.txt"])
       rm "#{@local}/hello.txt"
-      Dbox.pull(@local)
+      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [])
       "#{@local}/hello.txt".should_not exist
     end
   end
@@ -99,18 +94,13 @@ describe Dbox do
 
     it "should be able to push" do
       Dbox.create(@remote, @local)
-      expect { Dbox.push(@local) }.to_not raise_error
-    end
-
-    it "should be able to push from inside the dir" do
-      Dbox.create(@remote, @local)
-      expect { Dbox.push(@local) }.to_not raise_error
+      Dbox.push(@local).should eql(:created => [], :deleted => [], :updated => [])
     end
 
     it "should be able to push new file" do
       Dbox.create(@remote, @local)
       touch "#{@local}/foo.txt"
-      expect { Dbox.push(@local) }.to_not raise_error
+      Dbox.push(@local).should eql(:created => ["foo.txt"], :deleted => [], :updated => [])
     end
 
     it "should create the remote dir if it is missing" do
@@ -119,7 +109,14 @@ describe Dbox do
       @new_name = randname()
       @new_remote = File.join(REMOTE_TEST_PATH, @new_name)
       modify_dbfile {|s| s.sub(/^remote_path: \/.*$/, "remote_path: #{@new_remote}") }
-      expect { Dbox.push(@local) }.to_not raise_error
+      Dbox.push(@local).should eql(:created => ["foo.txt"], :deleted => [], :updated => [])
+    end
+
+    it "should be able to push nested content" do
+      Dbox.create(@remote, @local)
+      mkdir "#{@local}/subdir"
+      touch "#{@local}/subdir/foo.txt"
+      Dbox.push(@local).should eql(:created => ["subdir", "subdir/foo.txt"], :deleted => [], :updated => [])
     end
   end
 end

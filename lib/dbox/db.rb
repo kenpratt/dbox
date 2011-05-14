@@ -59,13 +59,15 @@ module Dbox
     end
 
     def pull
-      @root.pull
+      res = @root.pull
       save
+      res
     end
 
     def push
-      @root.push
+      res = @root.push
       save
+      res
     end
 
     def local_to_relative_path(path)
@@ -216,13 +218,15 @@ module Dbox
         if res.has_key?("contents")
           old_contents = @contents
           new_contents_arr = remove_dotfiles(res["contents"]).map do |c|
-            if last_entry = old_contents[c["path"]]
+            p = @db.remote_to_relative_path(c["path"])
+            if last_entry = old_contents[p]
               new_entry = last_entry.clone
               last_entry.freeze
               new_entry.update(c)
-              [c["path"], new_entry]
+              [new_entry.path, new_entry]
             else
-              [c["path"], smart_new(c)]
+              new_entry = smart_new(c)
+              [new_entry.path, new_entry]
             end
           end
           @contents = Hash[new_contents_arr]
@@ -236,28 +240,28 @@ module Dbox
       def pull
         prev = self.clone
         prev.freeze
-        log.info "Pulling changes"
         res = api.metadata(remote_path)
         update(res)
         if contents_hash != prev.contents_hash
-          reconcile(prev, :down)
+          changes = reconcile(prev, :down)
+        else
+          changes = { :created => [], :deleted => [], :updated => [] }
         end
-        subdirs.each {|d| d.pull }
+        subdirs.inject(changes) {|c, d| merge_changes(c, d.pull) }
       end
 
       def push
         prev = self.clone
         prev.freeze
-        log.info "Pushing changes"
         res = gather_info(@path)
         update(res)
-        reconcile(prev, :up)
-        subdirs.each {|d| d.push }
+        changes = reconcile(prev, :up)
+        subdirs.inject(changes) {|c, d| merge_changes(c, d.push) }
       end
 
       def reconcile(prev, direction)
-        old_paths = prev.contents.keys
-        new_paths = contents.keys
+        old_paths = prev.contents.keys.sort
+        new_paths = contents.keys.sort
 
         deleted_paths = old_paths - new_paths
 
@@ -271,13 +275,19 @@ module Dbox
           deleted_paths.each {|p| prev.contents[p].delete_local }
           created_paths.each {|p| contents[p].create_local }
           stale_paths.each {|p| contents[p].update_local }
+          { :created => created_paths, :deleted => deleted_paths, :updated => stale_paths }
         when :up
           deleted_paths.each {|p| prev.contents[p].delete_remote }
           created_paths.each {|p| contents[p].create_remote }
           stale_paths.each {|p| contents[p].update_remote }
+          { :created => created_paths, :deleted => deleted_paths, :updated => stale_paths }
         else
           raise(ArgumentError, "Invalid sync direction: #{direction.inspect}")
         end
+      end
+
+      def merge_changes(old, new)
+        old.merge(new) {|k, v1, v2| v1 + v2 }
       end
 
       def gather_info(rel, list_contents=true)

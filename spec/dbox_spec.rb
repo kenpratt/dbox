@@ -3,11 +3,20 @@ require File.expand_path(File.dirname(__FILE__) + "/spec_helper")
 include FileUtils
 
 describe Dbox do
+  before(:all) do
+    clear_test_log
+  end
+
   before(:each) do
+    log.info example.full_description
     cd LOCAL_TEST_PATH
     @name = randname()
     @local = File.join(LOCAL_TEST_PATH, @name)
     @remote = File.join(REMOTE_TEST_PATH, @name)
+  end
+
+  after(:each) do
+    log.info ""
   end
 
   describe "#create" do

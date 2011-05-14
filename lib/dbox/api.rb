@@ -49,7 +49,10 @@ module Dbox
     def run(path)
       path = escape_path(path)
       begin
-        case res = (yield path)
+        res = yield path
+        log.debug "Result: #{res.inspect}"
+
+        case res
         when Hash
           res
         when String
@@ -57,11 +60,12 @@ module Dbox
         when Net::HTTPNotFound
           raise RemoteMissing, "#{path} does not exist on Dropbox"
         when Net::HTTPForbidden
-          raise RequestDenied, "Request for #{path} denied"
+          raise RequestDenied, "Operation on #{path} denied"
         else
           raise RuntimeError, "Unexpected result: #{res.inspect}"
         end
       rescue DropboxError => e
+        log.debug e.inspect
         raise ServerError, "Server error -- might be a hiccup, please try your request again (#{e.message})"
       end
     end

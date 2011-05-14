@@ -2,6 +2,7 @@ module Dbox
   class ConfigurationError < RuntimeError; end
   class ServerError < RuntimeError; end
   class RemoteMissing < RuntimeError; end
+  class RemoteAlreadyExists < RuntimeError; end
   class RequestDenied < RuntimeError; end
 
   class API
@@ -80,7 +81,12 @@ module Dbox
     def create_dir(path)
       log.info "Creating #{path}"
       run(path) do |path|
-        @client.file_create_folder(@conf["root"], path)
+        case res = @client.file_create_folder(@conf["root"], path)
+        when Net::HTTPForbidden
+          raise RemoteAlreadyExists, "The directory at #{path} already exists"
+        else
+          res
+        end
       end
     end
 

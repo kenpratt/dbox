@@ -25,10 +25,10 @@ describe Dbox do
       File.exists?(@local).should be_true
     end
 
-    xit "should fail if the remote already exists" do
+    it "should fail if the remote already exists" do
       Dbox.create(@remote)
       rm_rf @local
-      expect { Dbox.create(@remote) }.to raise_error("Remote path already exists")
+      expect { Dbox.create(@remote) }.to raise_error(Dbox::RemoteAlreadyExists)
       File.exists?(@local).should be_false
     end
   end

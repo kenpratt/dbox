@@ -32,20 +32,30 @@ def print_usage_and_quit; puts usage; exit 1; end
 print_usage_and_quit unless ARGV.size >= 1
 
 command = ARGV[0]
-rest = ARGV[1..-1]
+args = ARGV[1..-1]
 
 # execute the command
 case command
 when "authorize"
   Dbox.authorize
 when "create", "clone"
-  unless rest.size >= 1
+  unless args.size >= 1
     puts "Error: Please provide a remote path to clone"
     print_usage_and_quit
   end
-  Dbox.send(command, *rest)
+
+  remote_path = args[0]
+
+  # default to creating a directory inside the current directory with
+  # the same name of the directory being created/cloned
+  local_path = args[1] || remote_path.split("/").last
+
+  Dbox.send(command, remote_path, local_path)
 when "pull", "push"
-  Dbox.send(command, *rest)
+  # default to current directory
+  local_path = args[0] || "."
+
+  Dbox.send(command, local_path)
 else
   print_usage_and_quit
 end

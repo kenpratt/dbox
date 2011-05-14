@@ -27,7 +27,7 @@ module Dbox
       db_file = db_file(local_path)
       if File.exists?(db_file)
         db = File.open(db_file, "r") {|f| YAML::load(f.read) }
-        db.local_path = File.expand_path(local_path)
+        db.local_path = local_path
         db
       else
         raise MissingDatabase, "No DB file found in #{local_path}"
@@ -45,7 +45,7 @@ module Dbox
     # IMPORTANT: DropboxDb.new is private. Please use DropboxDb.create, DropboxDb.clone, or DropboxDb.load as the entry point.
     private_class_method :new
     def initialize(local_path, res)
-      @local_path = File.expand_path(local_path)
+      @local_path = local_path
       @remote_path = res["path"]
       FileUtils.mkdir_p(@local_path)
       @root = DropboxDir.new(self, res)

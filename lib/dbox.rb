@@ -17,36 +17,38 @@ module Dbox
     Dbox::API.authorize
   end
 
-  def self.create(remote_path, local_path = nil)
+  def self.create(remote_path, local_path)
     remote_path = clean_remote_path(remote_path)
-    local_path ||= remote_path.split("/").last
+    local_path = clean_local_path(local_path)
     Dbox::DB.create(remote_path, local_path)
   end
 
-  def self.clone(remote_path, local_path = nil)
+  def self.clone(remote_path, local_path)
     remote_path = clean_remote_path(remote_path)
-    local_path ||= remote_path.split("/").last
+    local_path = clean_local_path(local_path)
     Dbox::DB.clone(remote_path, local_path)
   end
 
-  def self.pull(local_path = nil)
-    local_path ||= "."
+  def self.pull(local_path)
+    local_path = clean_local_path(local_path)
     Dbox::DB.pull(local_path)
   end
 
-  def self.push(local_path = nil)
-    local_path ||= "."
+  def self.push(local_path)
+    local_path = clean_local_path(local_path)
     Dbox::DB.push(local_path)
   end
 
   private
 
   def self.clean_remote_path(path)
-    if path
-      path.sub(/\/$/,'')
-      path[0].chr == "/" ? path : "/#{path}"
-    else
-      raise "Missing remote path"
-    end
+    raise(ArgumentError, "Missing remote path") unless path
+    path.sub(/\/$/,'')
+    path[0].chr == "/" ? path : "/#{path}"
+  end
+
+  def self.clean_local_path(path)
+    raise(ArgumentError, "Missing local path") unless path
+    File.expand_path(path)
   end
 end

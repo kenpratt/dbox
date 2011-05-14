@@ -9,6 +9,10 @@ An easy way to push and pull your Dropbox folders, with fine-grained control ove
 Installation
 ------------
 
+```sh
+$ gem install simplejob
+```
+
 ### Get developer keys
 
 * Follow the instructions at https://www.dropbox.com/developers/quickstart to create a Dropbox development application, and copy the application keys.

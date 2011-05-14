@@ -1,17 +1,19 @@
 module Dbox
   class DB
+    include Loggable
+
     DB_FILE = ".dropbox.db"
 
     attr_accessor :local_path
 
     def self.create(remote_path, local_path)
-      puts "[db] Creating remote folder: #{remote_path}"
+      log.info "Creating remote folder: #{remote_path}"
       api.create_dir(remote_path)
       clone(remote_path, local_path)
     end
 
     def self.clone(remote_path, local_path)
-      puts "[db] Cloning #{remote_path} into #{local_path}"
+      log.info "Cloning #{remote_path} into #{local_path}"
       res = api.metadata(remote_path)
       raise "Remote path error" unless remote_path == res["path"]
       db = new(local_path, res)
@@ -118,6 +120,8 @@ module Dbox
     end
 
     class DropboxBlob
+      include Loggable
+
       attr_reader :path, :revision, :modified_at
 
       def initialize(db, res)
@@ -229,7 +233,7 @@ module Dbox
       def pull
         prev = self.clone
         prev.freeze
-        puts "[db] pulling"
+        log.info "Pulling changes"
         res = api.metadata(remote_path)
         update(res)
         if contents_hash != prev.contents_hash
@@ -241,7 +245,7 @@ module Dbox
       def push
         prev = self.clone
         prev.freeze
-        puts "[db] pushing"
+        log.info "Pushing changes"
         res = gather_info(@path)
         update(res)
         reconcile(prev, :up)
@@ -299,7 +303,7 @@ module Dbox
       end
 
       def create_local
-        puts "[fs] creating dir #{local_path}"
+        log.info "Creating dir: #{local_path}"
         saving_parent_timestamp do
           FileUtils.mkdir_p(local_path)
           update_file_timestamp
@@ -307,14 +311,14 @@ module Dbox
       end
 
       def delete_local
-        puts "[fs] deleting dir #{local_path}"
+        log.info "Deleting dir: #{local_path}"
         saving_parent_timestamp do
           FileUtils.rm_r(local_path)
         end
       end
 
       def update_local
-        puts "[fs] updating dir #{local_path}"
+        log.info "Updating dir: #{local_path}"
         update_file_timestamp
       end
 
@@ -350,7 +354,7 @@ module Dbox
       end
 
       def create_local
-        puts "[fs] creating file #{local_path}"
+        log.info "Creating file: #{local_path}"
         saving_parent_timestamp do
           download
           update_file_timestamp
@@ -358,14 +362,14 @@ module Dbox
       end
 
       def delete_local
-        puts "[fs] deleting file #{local_path}"
+        log.info "Deleting file: #{local_path}"
         saving_parent_timestamp do
           FileUtils.rm_rf(local_path)
         end
       end
 
       def update_local
-        puts "[fs] updating file #{local_path}"
+        log.info "Updating file: #{local_path}"
         download
         update_file_timestamp
       end

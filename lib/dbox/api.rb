@@ -1,9 +1,9 @@
 module Dbox
   class API
+    include Loggable
+
     def self.authorize
-      puts conf.inspect
       auth = Authenticator.new(conf)
-      puts auth.inspect
       authorize_url = auth.get_request_token
       puts "Please visit the following URL in your browser, log into Dropbox, and authorize the app you created.\n\n#{authorize_url}\n\nWhen you have done so, press [ENTER] to continue."
       STDIN.readline
@@ -43,7 +43,7 @@ module Dbox
 
     def metadata(path = "/")
       path = escape_path(path)
-      puts "[api] fetching metadata for #{path}"
+      log.debug "Fetching metadata for #{path}"
       begin
         case res = @client.metadata(@conf["root"], path)
         when Hash
@@ -60,25 +60,25 @@ module Dbox
 
     def create_dir(path)
       path = escape_path(path)
-      puts "[api] creating #{path}"
+      log.info "Creating #{path}"
       @client.file_create_folder(@conf["root"], path)
     end
 
     def delete_dir(path)
       path = escape_path(path)
-      puts "[api] deleting #{path}"
+      log.info "Deleting #{path}"
       @client.file_delete(@conf["root"], path)
     end
 
     def get_file(path)
       path = escape_path(path)
-      puts "[api] downloading #{path}"
+      log.info "Downloading #{path}"
       @client.get_file(@conf["root"], path)
     end
 
     def put_file(path, file_obj)
       path = escape_path(path)
-      puts "[api] uploading #{path}"
+      log.info "Uploading #{path}"
       dir = File.dirname(path)
       name = File.basename(path)
       @client.put_file(@conf["root"], dir, name, file_obj)
@@ -86,7 +86,7 @@ module Dbox
 
     def delete_file(path)
       path = escape_path(path)
-      puts "[api] deleting #{path}"
+      log.info "Deleting #{path}"
       @client.file_delete(@conf["root"], path)
     end
 

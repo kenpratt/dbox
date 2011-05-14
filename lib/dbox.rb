@@ -6,7 +6,9 @@ require "dropbox"
 require "fileutils"
 require "time"
 require "yaml"
+require "logger"
 
+require "dbox/loggable"
 require "dbox/api"
 require "dbox/db"
 

@@ -38,3 +38,9 @@ end
 def log
   LOGGER
 end
+
+RSpec::Matchers.define :exist do
+  match do |actual|
+    File.exists?(actual) == true
+  end
+end

@@ -21,14 +21,14 @@ describe Dbox do
   describe "#create" do
     it "creates the local directory" do
       Dbox.create(@remote, @local)
-      File.exists?(@local).should be_true
+      @local.should exist
     end
 
     it "should fail if the remote already exists" do
       Dbox.create(@remote, @local)
       rm_rf @local
       expect { Dbox.create(@remote, @local) }.to raise_error(Dbox::RemoteAlreadyExists)
-      File.exists?(@local).should be_false
+      @local.should_not exist
     end
   end
 
@@ -36,14 +36,14 @@ describe Dbox do
     it "creates the local directory" do
       Dbox.create(@remote, @local)
       rm_rf @local
-      File.exists?(@local).should be_false
+      @local.should_not exist
       Dbox.clone(@remote, @local)
-      File.exists?(@local).should be_true
+      @local.should exist
     end
 
     it "should fail if the remote does not exist" do
       expect { Dbox.clone(@remote, @local) }.to raise_error(Dbox::RemoteMissing)
-      File.exists?(@local).should be_false
+      @local.should_not exist
     end
   end
 
@@ -70,7 +70,7 @@ describe Dbox do
 
     it "should be able to pull changes" do
       Dbox.create(@remote, @local)
-      File.exists?("#{@local}/hello.txt").should be_false
+      "#{@local}/hello.txt".should_not exist
 
       @alternate = "#{ALTERNATE_LOCAL_TEST_PATH}/#{@name}"
       Dbox.clone(@remote, @alternate)
@@ -78,7 +78,7 @@ describe Dbox do
       Dbox.push(@alternate)
 
       expect { Dbox.pull(@local) }.to_not raise_error
-      File.exists?("#{@local}/hello.txt").should be_true
+      "#{@local}/hello.txt".should exist
     end
 
     it "should be able to pull after deleting a file and not have the file re-created" do
@@ -88,7 +88,7 @@ describe Dbox do
       Dbox.pull(@local)
       rm "#{@local}/hello.txt"
       Dbox.pull(@local)
-      File.exists?("#{@local}/hello.txt").should be_false
+      "#{@local}/hello.txt".should_not exist
     end
   end
 
@@ -109,13 +109,13 @@ describe Dbox do
 
     it "should be able to push new file" do
       Dbox.create(@remote, @local)
-      touch File.join(@local, "foo.txt")
+      touch "#{@local}/foo.txt"
       expect { Dbox.push(@local) }.to_not raise_error
     end
 
     it "should create the remote dir if it is missing" do
       Dbox.create(@remote, @local)
-      touch File.join(@local, "foo.txt")
+      touch "#{@local}/foo.txt"
       @new_name = randname()
       @new_remote = File.join(REMOTE_TEST_PATH, @new_name)
       modify_dbfile {|s| s.sub(/^remote_path: \/.*$/, "remote_path: #{@new_remote}") }

@@ -20,7 +20,7 @@ $ export DROPBOX_APP_KEY=cmlrrjd3j0gbend
 $ export DROPBOX_APP_SECRET=uvuulp75xf9jffl
 ```
 
-Or include them in calls to dbox:
+* Or include them in calls to dbox:
 
 ```sh
 $ DROPBOX_APP_KEY=cmlrrjd3j0gbend DROPBOX_APP_SECRET=uvuulp75xf9jffl dbox ...
@@ -47,13 +47,13 @@ $ export DROPBOX_AUTH_KEY=v4d7l1rez1czksn
 $ export DROPBOX_AUTH_SECRET=pqej9rmnj0i1gcxr4
 ```
 
-Or include them in calls to dbox:
+* Or include them in calls to dbox:
 
 ```sh
 $ DROPBOX_AUTH_KEY=v4d7l1rez1czksn DROPBOX_AUTH_SECRET=pqej9rmnj0i1gcxr4 dbox ...
 ```
 
-This auth token will last for **10 years**, or when you choose to invalidate it, whichever comes first. So you really only need to do this once, and then keep them around.
+* This auth token will last for **10 years**, or when you choose to invalidate it, whichever comes first. So you really only need to do this once, and then keep them around.
 
 
 Usage

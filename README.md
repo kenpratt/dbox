@@ -9,8 +9,10 @@ An easy way to push and pull your Dropbox folders, with fine-grained control ove
 Installation
 ------------
 
+### Install dbox
+
 ```sh
-$ gem install simplejob
+$ gem install dbox
 ```
 
 ### Get developer keys

@@ -108,4 +108,5 @@ $ echo "Oh, Hello" > ~/Dropbox/Public/hello.txt
 ```sh
 $ dbox pull
 $ cat hello.txt
+Oh, Hello
 ```

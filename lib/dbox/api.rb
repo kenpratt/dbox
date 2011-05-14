@@ -44,7 +44,14 @@ module Dbox
     def metadata(path = "/")
       path = escape_path(path)
       puts "[api] fetching metadata for #{path}"
-      @client.metadata(@conf["root"], path)
+      case res = @client.metadata(@conf["root"], path)
+      when Hash
+        res
+      when Net::HTTPNotFound
+        raise "Remote path does not exist"
+      else
+        raise "Unexpected result from GET /metadata: #{res.inspect}"
+      end
     end
 
     def create_dir(path)

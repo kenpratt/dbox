@@ -12,16 +12,10 @@ module Dbox
 
     def self.clone(remote_path, local_path)
       puts "[db] Cloning #{remote_path} into #{local_path}"
-      case res = api.metadata(remote_path)
-      when Hash
-        raise "Remote path error" unless remote_path == res["path"]
-        db = new(local_path, res)
-        db.pull
-      when Net::HTTPNotFound
-        raise "Remote path does not exist"
-      else
-        raise "Clone failed: #{res.inspect}"
-      end
+      res = api.metadata(remote_path)
+      raise "Remote path error" unless remote_path == res["path"]
+      db = new(local_path, res)
+      db.pull
     end
 
     def self.load(local_path)

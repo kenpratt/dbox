@@ -13,3 +13,10 @@ def randname
   u = `uuidgen`.chomp
   "test-#{u}"
 end
+
+def modify_dbfile
+  dbfile = File.join(@local, Dbox::DB::DB_FILE)
+  s = File.open(dbfile, "r").read
+  s = yield s
+  File.open(dbfile, "w") {|f| f << s }
+end

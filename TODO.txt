@@ -1,0 +1,7 @@
+* Add tests
+* See if pull re-creates locally-deleted files (it shouldn't)
+* Look down directory tree until you hit a .dropbox.db file
+* Solve upload -> re-download issue
+* Add rename_remote command
+* Add a "sync" command that pushes and pulls in one go
+* Add support for partial push/pull? (also, make it defoult behaviour from subdir?)

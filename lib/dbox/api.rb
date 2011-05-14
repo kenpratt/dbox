@@ -49,6 +49,9 @@ module Dbox
         res
       when Net::HTTPNotFound
         raise "Remote path does not exist"
+      when Net::HTTPInternalServerError
+        puts res.inspect
+        raise "Server error -- might be a hiccup, please try your request again"
       else
         raise "Unexpected result from GET /metadata: #{res.inspect}"
       end

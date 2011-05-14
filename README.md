@@ -82,7 +82,9 @@ Example
 $ dbox authorize
 ```
 
-(visit website to authorize)
+```sh
+$ open http://www.dropbox.com/0/oauth/authorize?oauth_token=aaoeuhtns123456
+```
 
 ```sh
 $ export DROPBOX_AUTH_KEY=abcdef012345678
@@ -93,11 +95,15 @@ $ export DROPBOX_AUTH_SECRET=0123456789abcdefg
 $ cd /tmp
 $ dbox clone Public
 $ cd Public
-$ echo "hello world" > hello.txt
+$ echo "Hello World" > hello.txt
 $ dbox push
 ```
 
-(edit hello.txt from your dropbox folder, changing the content to "oh, hello there")
+```sh
+$ cat ~/Dropbox/Public/hello.txt
+Hello World
+$ echo "Oh, Hello" > ~/Dropbox/Public/hello.txt
+```
 
 ```sh
 $ dbox pull

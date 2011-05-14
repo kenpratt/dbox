@@ -10,10 +10,6 @@ require "yaml"
 require "dbox/api"
 require "dbox/db"
 
-# load config
-CONFIG_FILE = File.join(ROOT_PATH, "config", "dropbox.json")
-CONF = Authenticator.load_config(CONFIG_FILE)
-
 module Dbox
   def self.authorize
     Dbox::API.authorize

@@ -1,5 +1,7 @@
 module Dbox
   class DB
+    DB_FILE = ".dropbox.db"
+
     attr_accessor :local_path
 
     def self.create(remote_path, local_path)
@@ -106,14 +108,7 @@ module Dbox
     end
 
     def self.api
-      unless @api
-        auth_key = ENV["DROPBOX_AUTH_KEY"]
-        auth_secret = ENV["DROPBOX_AUTH_SECRET"]
-        raise("Must set DROPBOX_AUTH_KEY environment variable to an authenticated Dropbox session key") unless auth_key
-        raise("Must set DROPBOX_AUTH_SECRET environment variable to an authenticated Dropbox session secret") unless auth_secret
-        @api = API.connect(auth_key, auth_secret)
-      end
-      @api
+      @api ||= API.connect
     end
 
     def api
@@ -121,7 +116,7 @@ module Dbox
     end
 
     def self.db_file(local_path)
-      File.join(local_path, CONF["db_file"])
+      File.join(local_path, DB_FILE)
     end
 
     def db_file

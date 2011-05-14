@@ -11,15 +11,20 @@ Installation
 
 ### Get developer keys
 
-* Follow the instructions at https://www.dropbox.com/developers/quickstart create a Dropbox development application, and copy the app keys into a new config file:
+* Follow the instructions at https://www.dropbox.com/developers/quickstart create a Dropbox development application, and copy the application keys.
+
+* Now either set the keys as environment variables:
 
 ```sh
-$ cp config/dropbox.json.example config/dropbox.json
-$ edit config/dropbox.json
-  "consumer_key": "<your_consumer_key>",
-  "consumer_secret": "<your_consumer_secret>",
+$ export DROPBOX_APP_KEY=cmlrrjd3j0gbend
+$ export DROPBOX_APP_SECRET=uvuulp75xf9jffl
 ```
 
+or include them in calls to dbox:
+
+```sh
+$ DROPBOX_APP_KEY=cmlrrjd3j0gbend DROPBOX_APP_SECRET=uvuulp75xf9jffl dbox ...
+```
 ### Generate auth token
 
 ```sh
@@ -30,14 +35,13 @@ http://www.dropbox.com/0/oauth/authorize?oauth_token=j2kuzfvobcpqh0g
 
 When you have done so, press [ENTER] to continue.
 
-export DROPBOX_AUTH_KEY=abcdef012345678
-export DROPBOX_AUTH_SECRET=0123456789abcdefg
+export DROPBOX_AUTH_KEY=v4d7l1rez1czksn
+export DROPBOX_AUTH_SECRET=pqej9rmnj0i1gcxr4
 
 This auth token will last for 10 years, or when you choose to invalidate it, whichever comes first.
 
-Now either include these constants in yours calls to dbox, or set them as environment variables.
-In bash, including them in calls looks like:
-$ DROPBOX_AUTH_KEY=abcdef012345678 DROPBOX_AUTH_SECRET=0123456789abcdefg dbox ...
+Now either set these constants as environment variables, or include them in calls to dbox. In bash, including in calls looks like:
+$ DROPBOX_AUTH_KEY=v4d7l1rez1czksn DROPBOX_AUTH_SECRET=pqej9rmnj0i1gcxr4 dbox ...
 ```
 
 
@@ -79,6 +83,11 @@ Example
 -------
 
 ```sh
+$ export DROPBOX_APP_KEY=cmlrrjd3j0gbend
+$ export DROPBOX_APP_SECRET=uvuulp75xf9jffl
+```
+
+```sh
 $ dbox authorize
 ```
 
@@ -87,8 +96,8 @@ $ open http://www.dropbox.com/0/oauth/authorize?oauth_token=aaoeuhtns123456
 ```
 
 ```sh
-$ export DROPBOX_AUTH_KEY=abcdef012345678
-$ export DROPBOX_AUTH_SECRET=0123456789abcdefg
+$ export DROPBOX_AUTH_KEY=v4d7l1rez1czksn
+$ export DROPBOX_AUTH_SECRET=pqej9rmnj0i1gcxr4
 ```
 
 ```sh

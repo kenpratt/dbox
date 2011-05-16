@@ -120,6 +120,19 @@ module Dbox
       end
     end
 
+    def move(old_path, new_path)
+      log.info "Moving #{old_path} to #{new_path}"
+      run(old_path) do |old_path|
+        new_path = escape_path(new_path)
+        case res = @client.file_move(@conf["root"], old_path, new_path)
+        when Net::HTTPBadRequest
+          raise RemoteAlreadyExists, "Error during move -- there may already be a Dropbox folder at #{new_path}"
+        else
+          res
+        end
+      end
+    end
+
     def escape_path(path)
       URI.escape(path)
     end

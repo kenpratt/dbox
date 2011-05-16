@@ -182,4 +182,30 @@ describe Dbox do
       Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [])
     end
   end
+
+  describe "#move" do
+    before(:each) do
+      @new_name = randname()
+      @new_local = File.join(LOCAL_TEST_PATH, @new_name)
+      @new_remote = File.join(REMOTE_TEST_PATH, @new_name)
+    end
+
+    it "should fail if the local dir is missing" do
+      expect { Dbox.move(@new_remote, @local) }.to raise_error(Dbox::MissingDatabase)
+    end
+
+    it "should be able to move" do
+      Dbox.create(@remote, @local)
+      expect { Dbox.move(@new_remote, @local) }.to_not raise_error
+      @local.should exist
+      expect { Dbox.clone(@new_remote, @new_local) }.to_not raise_error
+      @new_local.should exist
+    end
+
+    it "should not be able to move to a location that exists" do
+      Dbox.create(@remote, @local)
+      Dbox.create(@new_remote, @new_local)
+      expect { Dbox.move(@new_remote, @local) }.to raise_error(Dbox::RemoteAlreadyExists)
+    end
+  end
 end

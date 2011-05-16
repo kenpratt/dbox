@@ -97,6 +97,12 @@ $ dbox pull [<local_path>]
 $ dbox push [<local_path>]
 ```
 
+#### Move (move/rename the Dropbox folder)
+
+```sh
+$ dbox move <new_remote_path> [<local_path>]
+```
+
 #### Example
 
 ```sh
@@ -172,6 +178,12 @@ Dbox.pull(local_path)
 
 ```ruby
 Dbox.push(local_path)
+```
+
+#### Move (move/rename the Dropbox folder)
+
+```ruby
+Dbox.move(new_remote_path, local_path)
 ```
 
 #### Example

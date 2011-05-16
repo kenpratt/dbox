@@ -39,6 +39,12 @@ module Dbox
     Dbox::DB.push(local_path)
   end
 
+  def self.move(new_remote_path, local_path)
+    new_remote_path = clean_remote_path(new_remote_path)
+    local_path = clean_local_path(local_path)
+    Dbox::DB.move(new_remote_path, local_path)
+  end
+
   private
 
   def self.clean_remote_path(path)

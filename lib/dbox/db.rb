@@ -41,6 +41,10 @@ module Dbox
       load(local_path).push
     end
 
+    def self.move(new_remote_path, local_path)
+      load(local_path).move(new_remote_path)
+    end
+
     # IMPORTANT: DropboxDb.new is private. Please use DropboxDb.create, DropboxDb.clone, or DropboxDb.load as the entry point.
     private_class_method :new
     def initialize(local_path, res)
@@ -67,6 +71,12 @@ module Dbox
       res = @root.push
       save
       res
+    end
+
+    def move(new_remote_path)
+      api.move(@remote_path, new_remote_path)
+      @remote_path = new_remote_path
+      save
     end
 
     def local_to_relative_path(path)

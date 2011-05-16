@@ -9,11 +9,12 @@ def usage
 Usage: dbox <commond> [<args>]
 
 Commands:
-  authorize                            Generate auth keys
-  create <remote_path> [<local_path>]  Create a new Dropbox folder
-  clone <remote_path> [<local_path>]   Clone an existing Dropbox folder
-  pull [<local_path>]                  Pull chonges from Dropbox
-  push [<local_path>]                  Push changes to Dropbox
+  authorize                             Generate auth keys
+  create <remote_path> [<local_path>]   Create a new Dropbox folder
+  clone <remote_path> [<local_path>]    Clone an existing Dropbox folder
+  pull [<local_path>]                   Pull chonges from Dropbox
+  push [<local_path>]                   Push changes to Dropbox
+  move <new_remote_path> [<local_path>] Move the remote Dropbox folder to a new location
 
 Environment varables needed for everything:
   export DROPBOX_APP_KEY=cmlrrjd3j0gbend
@@ -56,6 +57,13 @@ when "pull", "push"
   local_path = args[0] || "."
 
   Dbox.send(command, local_path)
+when "move"
+  remote_path = args[0]
+
+  # default to current directory
+  local_path = args[1] || "."
+
+  Dbox.send(command, remote_path, local_path)
 else
   print_usage_and_quit
 end

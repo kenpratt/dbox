@@ -192,6 +192,12 @@ Dbox.push(local_path)
 Dbox.move(new_remote_path, local_path)
 ```
 
+#### Check whether a Dropbox DB file is present
+
+```ruby
+Dbox.exists?(local_path)
+```
+
 #### Example
 
 ```sh

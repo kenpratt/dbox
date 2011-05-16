@@ -208,4 +208,21 @@ describe Dbox do
       expect { Dbox.move(@new_remote, @local) }.to raise_error(Dbox::RemoteAlreadyExists)
     end
   end
+
+  describe "#exists?" do
+    it "should be false if the local dir is missing" do
+      Dbox.exists?(@local).should be_false
+    end
+
+    it "should be true if the dir exists" do
+      Dbox.create(@remote, @local)
+      Dbox.exists?(@local).should be_true
+    end
+
+    it "should be false if the dir exists but is missing a .dropbox.db file" do
+      Dbox.create(@remote, @local)
+      rm "#{@local}/.dropbox.db"
+      Dbox.exists?(@local).should be_false
+    end
+  end
 end

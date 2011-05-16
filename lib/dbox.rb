@@ -45,6 +45,11 @@ module Dbox
     Dbox::DB.move(new_remote_path, local_path)
   end
 
+  def self.exists?(local_path)
+    local_path = clean_local_path(local_path)
+    Dbox::DB.exists?(local_path)
+  end
+
   private
 
   def self.clean_remote_path(path)

@@ -22,17 +22,6 @@ module Dbox
       db.pull
     end
 
-    def self.load(local_path)
-      db_file = db_file(local_path)
-      if File.exists?(db_file)
-        db = File.open(db_file, "r") {|f| YAML::load(f.read) }
-        db.local_path = local_path
-        db
-      else
-        raise MissingDatabase, "No DB file found in #{local_path}"
-      end
-    end
-
     def self.pull(local_path)
       load(local_path).pull
     end
@@ -43,6 +32,20 @@ module Dbox
 
     def self.move(new_remote_path, local_path)
       load(local_path).move(new_remote_path)
+    end
+
+    def self.exists?(local_path)
+      File.exists?(db_file(local_path))
+    end
+
+    def self.load(local_path)
+      if exists?(local_path)
+        db = File.open(db_file(local_path), "r") {|f| YAML::load(f.read) }
+        db.local_path = local_path
+        db
+      else
+        raise MissingDatabase, "No DB file found in #{local_path}"
+      end
     end
 
     # IMPORTANT: DropboxDb.new is private. Please use DropboxDb.create, DropboxDb.clone, or DropboxDb.load as the entry point.

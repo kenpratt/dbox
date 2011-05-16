@@ -146,6 +146,12 @@ Oh, Hello
 Using dbox from Ruby
 --------------------
 
+The Ruby clone, pull, and push APIs return a hash listing the changes made during that pull/push.
+
+```ruby
+{ :created => ["foo.txt"], :deleted => [], :updated => [] }
+```
+
 ### Usage
 
 #### Setup

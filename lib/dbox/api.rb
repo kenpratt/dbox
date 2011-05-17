@@ -48,9 +48,8 @@ module Dbox
     end
 
     def run(path)
-      path = escape_path(path)
       begin
-        res = yield path
+        res = yield
         case res
         when Hash
           res
@@ -71,14 +70,14 @@ module Dbox
 
     def metadata(path = "/")
       log.debug "Fetching metadata for #{path}"
-      run(path) do |path|
-        @client.metadata(@conf["root"], path)
+      run(path) do
+        @client.metadata(@conf["root"], escape_path(path))
       end
     end
 
     def create_dir(path)
       log.info "Creating #{path}"
-      run(path) do |path|
+      run(path) do
         case res = @client.file_create_folder(@conf["root"], path)
         when Net::HTTPForbidden
           raise RemoteAlreadyExists, "The directory at #{path} already exists"
@@ -90,38 +89,37 @@ module Dbox
 
     def delete_dir(path)
       log.info "Deleting #{path}"
-      run(path) do |path|
+      run(path) do
         @client.file_delete(@conf["root"], path)
       end
     end
 
     def get_file(path)
       log.info "Downloading #{path}"
-      run(path) do |path|
-        @client.get_file(@conf["root"], path)
+      run(path) do
+        @client.get_file(@conf["root"], escape_path(path))
       end
     end
 
     def put_file(path, file_obj)
       log.info "Uploading #{path}"
-      run(path) do |path|
+      run(path) do
         dir = File.dirname(path)
         name = File.basename(path)
-        @client.put_file(@conf["root"], dir, name, file_obj)
+        @client.put_file(@conf["root"], escape_path(dir), name, file_obj)
       end
     end
 
     def delete_file(path)
       log.info "Deleting #{path}"
-      run(path) do |path|
+      run(path) do
         @client.file_delete(@conf["root"], path)
       end
     end
 
     def move(old_path, new_path)
       log.info "Moving #{old_path} to #{new_path}"
-      run(old_path) do |old_path|
-        new_path = escape_path(new_path)
+      run(old_path) do
         case res = @client.file_move(@conf["root"], old_path, new_path)
         when Net::HTTPBadRequest
           raise RemoteAlreadyExists, "Error during move -- there may already be a Dropbox folder at #{new_path}"
@@ -132,7 +130,7 @@ module Dbox
     end
 
     def escape_path(path)
-      URI.escape(path)
+      path.split("/").map {|s| CGI.escape(s).gsub("+", "%20") }.join("/")
     end
 
     def self.conf

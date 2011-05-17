@@ -1,3 +1,5 @@
+# encoding: utf-8
+
 require File.expand_path(File.dirname(__FILE__) + "/spec_helper")
 
 include FileUtils
@@ -180,6 +182,17 @@ describe Dbox do
       touch "#{@local}/baz.txt"
       Dbox.push(@local).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => ["foo.txt"], :updated => ["baz.txt"])
       Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [])
+    end
+
+    it "should be able to handle crazy filenames" do
+      Dbox.create(@remote, @local)
+      crazy_name1 = '=+!@#  $%^&*()[]{}<>_-|:?,\'~".txt'
+      crazy_name2 = '[ˈdɔʏtʃ].txt'
+      touch "#{@local}/#{crazy_name1}"
+      touch "#{@local}/#{crazy_name2}"
+      Dbox.push(@local).should eql(:created => [crazy_name1, crazy_name2], :deleted => [], :updated => [])
+      rm_rf @local
+      Dbox.clone(@remote, @local).should eql(:created => [crazy_name1, crazy_name2], :deleted => [], :updated => [])
     end
   end
 

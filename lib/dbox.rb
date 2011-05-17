@@ -7,6 +7,7 @@ require "fileutils"
 require "time"
 require "yaml"
 require "logger"
+require "cgi"
 
 require "dbox/loggable"
 require "dbox/api"

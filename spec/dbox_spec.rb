@@ -194,6 +194,16 @@ describe Dbox do
       rm_rf @local
       Dbox.clone(@remote, @local).should eql(:created => [crazy_name1, crazy_name2], :deleted => [], :updated => [])
     end
+
+    it "should be able to handle directory names" do
+      Dbox.create(@remote, @local)
+      crazy_name1 = "Day[J] #42"
+      mkdir File.join(@local, crazy_name1)
+      touch File.join(@local, crazy_name1, "foo.txt")
+      Dbox.push(@local).should eql(:created => [crazy_name1, File.join(crazy_name1, "foo.txt")], :deleted => [], :updated => [])
+      rm_rf @local
+      Dbox.clone(@remote, @local).should eql(:created => [crazy_name1, File.join(crazy_name1, "foo.txt")], :deleted => [], :updated => [])
+    end
   end
 
   describe "#move" do

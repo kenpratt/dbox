@@ -322,9 +322,10 @@ module Dbox
         }
 
         if attrs["is_dir"] && list_contents
-          contents = Dir[File.join(full, "*")]
-          attrs["contents"] = contents.map do |f|
-            r = @db.local_to_relative_path(f)
+          contents = Dir.entries(full).reject {|s| s == "." || s == ".." }
+          attrs["contents"] = contents.map do |s|
+            p = File.join(full, s)
+            r = @db.local_to_relative_path(p)
             gather_info(r, false)
           end
         end

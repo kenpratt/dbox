@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{dbox}
-  s.version = "0.4.0"
+  s.version = "0.4.1"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = [%q{Ken Pratt}]
-  s.date = %q{2011-05-16}
+  s.date = %q{2011-05-17}
   s.description = %q{An easy-to-use Dropbox client with fine-grained control over syncs.}
   s.email = %q{ken@kenpratt.net}
   s.executables = [%q{dbox}]

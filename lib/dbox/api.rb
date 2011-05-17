@@ -51,8 +51,6 @@ module Dbox
       path = escape_path(path)
       begin
         res = yield path
-        log.debug "Result: #{res.inspect}"
-
         case res
         when Hash
           res

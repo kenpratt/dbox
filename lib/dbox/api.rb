@@ -80,7 +80,7 @@ module Dbox
       run(path) do
         case res = @client.file_create_folder(@conf["root"], path)
         when Net::HTTPForbidden
-          raise RemoteAlreadyExists, "The directory at #{path} already exists"
+          raise RemoteAlreadyExists, "Either the directory at #{path} already exists, or it has invalid characters in the name"
         else
           res
         end

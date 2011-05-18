@@ -26,7 +26,7 @@ module Dbox
       Rails.logger
     else
       l = Logger.new(STDOUT)
-      l.level = Logger::INFO
+      l.level = ENV["DEBUG"] ? Logger::DEBUG : Logger::INFO
       l.formatter = proc {|severity, datetime, progname, msg| "[#{severity}] #{msg}\n" }
       l
     end

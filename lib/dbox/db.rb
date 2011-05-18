@@ -65,15 +65,11 @@ module Dbox
     end
 
     def pull
-      res = @root.pull
-      save
-      res
+      @root.pull
     end
 
     def push
-      res = @root.push
-      save
-      res
+      @root.push
     end
 
     def move(new_remote_path)
@@ -148,13 +144,11 @@ module Dbox
       end
 
       def update_modification_info(res)
+        raise(BadPath, "Bad path (#{remote_path} != #{res["path"]})") unless remote_path == res["path"]
+        raise(RuntimeError, "Mode on #{@path} changed between file and dir -- not supported yet") unless dir? == res["is_dir"]
+
         last_modified_at = @modified_at
-        @modified_at = case t = res["modified"]
-                       when Time
-                         t
-                       when String
-                         Time.parse(t)
-                       end
+        @modified_at = parse_time(res["modified"])
         if res.has_key?("revision")
           @revision = res["revision"]
         else
@@ -170,12 +164,6 @@ module Dbox
         end
       end
 
-      def update(res)
-        raise(BadPath, "Bad path (#{remote_path} != #{res["path"]})") unless remote_path == res["path"]
-        raise(RuntimeError, "Mode on #{@path} changed between file and dir -- not supported yet") unless dir? == res["is_dir"]
-        update_modification_info(res)
-      end
-
       def local_path
         @db.relative_to_local_path(@path)
       end
@@ -188,6 +176,33 @@ module Dbox
         raise RuntimeError, "Not implemented"
       end
 
+      def create(direction)
+        case direction
+        when :down
+          create_local
+        when :up
+          create_remote
+        end
+      end
+
+      def update(direction)
+        case direction
+        when :down
+          update_local
+        when :up
+          update_remote
+        end
+      end
+
+      def delete(direction)
+        case direction
+        when :down
+          delete_local
+        when :up
+          delete_remote
+        end
+      end
+
       def create_local; raise RuntimeError, "Not implemented"; end
       def delete_local; raise RuntimeError, "Not implemented"; end
       def update_local; raise RuntimeError, "Not implemented"; end
@@ -196,12 +211,23 @@ module Dbox
       def delete_remote; raise RuntimeError, "Not implemented"; end
       def update_remote; raise RuntimeError, "Not implemented"; end
 
-      def modified?(last)
-        !(revision == last.revision && modified_at == last.modified_at)
+      def modified?(res)
+        out = !(@revision == res["revision"] && @modified_at == parse_time(res["modified"]))
+        log.debug "#{path}.modified? r#{@revision} =? r#{res["revision"]}, #{@modified_at} =? #{parse_time(res["modified"])} => #{out}"
+        out
+      end
+
+      def parse_time(t)
+        case t
+        when Time
+          t
+        when String
+          Time.parse(t)
+        end
       end
 
       def update_file_timestamp
-        File.utime(Time.now, modified_at, local_path)
+        File.utime(Time.now, @modified_at, local_path)
       end
 
       # this downloads the metadata about this blob from the server and
@@ -232,93 +258,117 @@ module Dbox
         super(db, res)
       end
 
-      def update(res)
-        raise(ArgumentError, "Not a directory: #{res.inspect}") unless res["is_dir"]
-        super(res)
-        @contents_hash = res["hash"] if res.has_key?("hash")
-        if res.has_key?("contents")
-          old_contents = @contents
-          new_contents_arr = remove_dotfiles(res["contents"]).map do |c|
-            p = @db.remote_to_relative_path(c["path"])
-            if last_entry = old_contents[p]
-              new_entry = last_entry.clone
-              last_entry.freeze
-              new_entry.update(c)
-              [new_entry.path, new_entry]
-            else
-              new_entry = smart_new(c)
-              [new_entry.path, new_entry]
-            end
-          end
-          @contents = Hash[new_contents_arr]
-        end
-      end
-
-      def remove_dotfiles(contents)
-        contents.reject {|c| File.basename(c["path"]).start_with?(".") }
-      end
-
       def pull
-        prev = self.clone
-        prev.freeze
+        # calculate changes on this dir
         res = api.metadata(remote_path)
-        update(res)
-        if contents_hash != prev.contents_hash
-          changes = reconcile(prev, :down)
-        else
-          changes = { :created => [], :deleted => [], :updated => [] }
-        end
-        subdirs.inject(changes) {|c, d| merge_changes(c, d.pull) }
+        changes = calculate_changes(res)
+
+        # execute changes on this dir
+        changelist = execute_changes(changes, :down)
+
+        # recur on subdirs, expanding changelist as we go
+        changelist = subdirs.inject(changelist) {|c, d| merge_changelists(c, d.pull) }
+
+        # only update the modification info on the directory once all descendants are updated
+        update_modification_info(res)
+
+        # return changes
+        @db.save
+        changelist
       end
 
       def push
-        prev = self.clone
-        prev.freeze
-        res = gather_info(@path)
-        update(res)
-        changes = reconcile(prev, :up)
-        subdirs.inject(changes) {|c, d| merge_changes(c, d.push) }
+        # calculate changes on this dir
+        res = gather_local_info(@path)
+        changes = calculate_changes(res)
+
+        # execute changes on this dir
+        changelist = execute_changes(changes, :up)
+
+        # recur on subdirs, expanding changelist as we go
+        changelist = subdirs.inject(changelist) {|c, d| merge_changelists(c, d.push) }
+
+        # only update the modification info on the directory once all descendants are updated
+        update_modification_info(res)
+
+        # return changes
+        @db.save
+        changelist
       end
 
-      def reconcile(prev, direction)
-        old_paths = prev.contents.keys.sort
-        new_paths = contents.keys.sort
+      def calculate_changes(res)
+        raise(ArgumentError, "Not a directory: #{res.inspect}") unless res["is_dir"]
 
-        deleted_paths = old_paths - new_paths
+        if @contents_hash && res["hash"] && @contents_hash == res["hash"]
+          # dir hash hasn't changed -- no need to calculate changes
+          []
+        elsif res["contents"]
+          # dir has changed -- calculate changes on contents
+          out = []
+          got_paths = []
 
-        created_paths = new_paths - old_paths
+          remove_dotfiles(res["contents"]).each do |c|
+            p = @db.remote_to_relative_path(c["path"])
+            c["rel_path"] = p
+            got_paths << p
 
-        kept_paths = old_paths & new_paths
-        stale_paths = kept_paths.select {|p| contents[p].modified?(prev.contents[p]) }
-
-        case direction
-        when :down
-          deleted_paths.each {|p| prev.contents[p].delete_local }
-          created_paths.each {|p| contents[p].create_local }
-          stale_paths.each {|p| contents[p].update_local }
-          { :created => created_paths, :deleted => deleted_paths, :updated => stale_paths }
-        when :up
-          deleted_paths.each {|p| prev.contents[p].delete_remote }
-          created_paths.each {|p| contents[p].create_remote }
-          stale_paths.each {|p| contents[p].update_remote }
-          { :created => created_paths, :deleted => deleted_paths, :updated => stale_paths }
+            if @contents.has_key?(p)
+              # only update file if it's been modified
+              if @contents[p].modified?(c)
+                out << [:update, c]
+              end
+            else
+              out << [:create, c]
+            end
+          end
+          out += (@contents.keys - got_paths).map {|p| [:delete, { "rel_path" => p }] }
+          out
         else
-          raise(ArgumentError, "Invalid sync direction: #{direction.inspect}")
+          raise(RuntimeError, "Trying to calculate dir changes without any contents")
         end
       end
 
-      def merge_changes(old, new)
+      def execute_changes(changes, direction)
+        log.debug "executing changes: #{changes.inspect}"
+        changelist = { :created => [], :deleted => [], :updated => [] }
+        changes.each do |op, c|
+          case op
+          when :create
+            e = smart_new(c)
+            e.create(direction)
+            @contents[e.path] = e
+            changelist[:created] << e.path
+          when :update
+            e = @contents[c["rel_path"]]
+            e.update_modification_info(c) if direction == :down
+            e.update(direction)
+            changelist[:updated] << e.path
+          when :delete
+            e = @contents[c["rel_path"]]
+            e.delete(direction)
+            @contents.delete(e.path)
+            changelist[:deleted] << e.path
+          else
+            raise(RuntimeError, "Unknown operation type: #{op}")
+          end
+          @db.save
+        end
+        changelist
+      end
+
+      def merge_changelists(old, new)
         old.merge(new) {|k, v1, v2| v1 + v2 }
       end
 
-      def gather_info(rel, list_contents=true)
+      def gather_local_info(rel, list_contents=true)
         full = @db.relative_to_local_path(rel)
         remote = @db.relative_to_remote_path(rel)
 
         attrs = {
           "path" => remote,
           "is_dir" => File.directory?(full),
-          "modified" => File.mtime(full)
+          "modified" => File.mtime(full),
+          "revision" => @contents[rel] ? @contents[rel].revision : nil
         }
 
         if attrs["is_dir"] && list_contents
@@ -326,11 +376,15 @@ module Dbox
           attrs["contents"] = contents.map do |s|
             p = File.join(full, s)
             r = @db.local_to_relative_path(p)
-            gather_info(r, false)
+            gather_local_info(r, false)
           end
         end
 
         attrs
+      end
+
+      def remove_dotfiles(contents)
+        contents.reject {|c| File.basename(c["path"]).start_with?(".") }
       end
 
       def dir?
@@ -374,7 +428,7 @@ module Dbox
 
       def print
         puts
-        puts "#{path} (v#{revision}, #{modified_at})"
+        puts "#{path} (v#{@revision}, #{@modified_at})"
         contents.each do |path, c|
           puts "  #{c.path} (v#{c.revision}, #{c.modified_at})"
         end
@@ -427,7 +481,7 @@ module Dbox
 
       def upload
         File.open(local_path) do |f|
-          res = api.put_file(remote_path, f)
+          api.put_file(remote_path, f)
         end
         force_metadata_update_from_server
       end

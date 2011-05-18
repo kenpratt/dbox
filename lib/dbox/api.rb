@@ -71,7 +71,9 @@ module Dbox
     def metadata(path = "/")
       log.debug "Fetching metadata for #{path}"
       run(path) do
-        @client.metadata(@conf["root"], escape_path(path))
+        res = @client.metadata(@conf["root"], escape_path(path))
+        log.debug res.inspect
+        res
       end
     end
 

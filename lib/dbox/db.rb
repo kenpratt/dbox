@@ -146,14 +146,14 @@ module Dbox
       def update_modification_info(res)
         raise(BadPath, "Bad path (#{remote_path} != #{res["path"]})") unless remote_path == res["path"]
         raise(RuntimeError, "Mode on #{@path} changed between file and dir -- not supported yet") unless dir? == res["is_dir"]
-
         last_modified_at = @modified_at
         @modified_at = parse_time(res["modified"])
-        if res.has_key?("revision")
+        if res["revision"]
           @revision = res["revision"]
         else
           @revision = -1 if @modified_at != last_modified_at
         end
+        log.debug "updated modification info on #{path.inspect}: r#{@revision}, #{@modified_at}"
       end
 
       def smart_new(res)
@@ -321,7 +321,7 @@ module Dbox
               out << [:create, c]
             end
           end
-          out += (@contents.keys - got_paths).map {|p| [:delete, { "rel_path" => p }] }
+          out += (@contents.keys.sort - got_paths.sort).map {|p| [:delete, { "rel_path" => p }] }
           out
         else
           raise(RuntimeError, "Trying to calculate dir changes without any contents")
@@ -353,11 +353,12 @@ module Dbox
           end
           @db.save
         end
+        changelist.keys.each {|k| changelist[k].sort! }
         changelist
       end
 
       def merge_changelists(old, new)
-        old.merge(new) {|k, v1, v2| v1 + v2 }
+        old.merge(new) {|k, v1, v2| (v1 + v2).sort }
       end
 
       def gather_local_info(rel, list_contents=true)

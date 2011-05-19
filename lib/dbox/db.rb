@@ -393,6 +393,7 @@ module Dbox
       end
 
       def create_local
+        log.info "Creating #{local_path}"
         saving_parent_timestamp do
           FileUtils.mkdir_p(local_path)
           update_file_timestamp
@@ -400,7 +401,7 @@ module Dbox
       end
 
       def delete_local
-        log.info "Deleting dir: #{local_path}"
+        log.info "Deleting #{local_path}"
         saving_parent_timestamp do
           FileUtils.rm_r(local_path)
         end

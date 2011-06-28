@@ -1,5 +1,6 @@
 module Dbox
   class MissingDatabase < RuntimeError; end
+  class CorruptDatabase < RuntimeError; end
   class BadPath < RuntimeError; end
 
   class DB
@@ -38,9 +39,19 @@ module Dbox
       File.exists?(db_file(local_path))
     end
 
+    def self.corrupt?(local_path)
+      begin
+        load(local_path)
+        false
+      rescue CorruptDatabase
+        true
+      end
+    end
+
     def self.load(local_path)
       if exists?(local_path)
         db = File.open(db_file(local_path), "r") {|f| YAML::load(f.read) }
+        raise CorruptDatabase unless db && db.kind_of?(DB)
         db.local_path = local_path
         db
       else

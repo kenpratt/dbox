@@ -51,6 +51,11 @@ module Dbox
     Dbox::DB.exists?(local_path)
   end
 
+  def self.corrupt?(local_path)
+    local_path = clean_local_path(local_path)
+    Dbox::DB.corrupt?(local_path)
+  end
+
   private
 
   def self.clean_remote_path(path)

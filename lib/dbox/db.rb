@@ -108,7 +108,7 @@ module Dbox
     end
 
     def relative_to_local_path(path)
-      if path.any?
+      if path && path.length > 0
         File.join(@local_path, path)
       else
         @local_path
@@ -116,7 +116,7 @@ module Dbox
     end
 
     def relative_to_remote_path(path)
-      if path.any?
+      if path && path.length > 0
         File.join(@remote_path, path)
       else
         @remote_path

@@ -14,6 +14,9 @@ Jeweler::Tasks.new do |gem|
   gem.email = "ken@kenpratt.net"
   gem.authors = ["Ken Pratt"]
   gem.executables = ["dbox"]
+  gem.add_dependency "multipart-post", ">= 1.1.2"
+  gem.add_dependency "oauth", ">= 0.4.5"
+  gem.add_dependency "json", ">= 1.5.3"
 end
 Jeweler::RubygemsDotOrgTasks.new
 

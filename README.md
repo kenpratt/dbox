@@ -3,7 +3,7 @@ dbox
 
 An easy way to push and pull your Dropbox folders, with fine-grained control over what folder you are syncing, where you are syncing it to, and when you are doing it.
 
-**IMPORTANT:** This is **not** an automated Dropbox client. It will exit after sucessfully pushing/pulling, so if you want regular updates, you can run it in cron, a loop, etc. If you do want to run it in a loop, take a look at [sample_polling_script.rb](http://github.com/kenpratt/dbox/blob/master/sample_poll_script.rb).
+**IMPORTANT:** This is **not** an automated Dropbox client. It will exit after sucessfully pushing/pulling, so if you want regular updates, you can run it in cron, a loop, etc. If you do want to run it in a loop, take a look at [sample_polling_script.rb](http://github.com/kenpratt/dbox/blob/master/sample_polling_script.rb).
 
 
 Installation

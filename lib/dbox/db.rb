@@ -7,6 +7,7 @@ module Dbox
     include Loggable
 
     DB_FILE = ".dropbox.db"
+    DB_TMPFILE = ".dropbox.db.tmp"
 
     attr_accessor :local_path
 
@@ -71,7 +72,8 @@ module Dbox
 
     def save
       self.class.saving_timestamp(@local_path) do
-        File.open(db_file, "w") {|f| f << YAML::dump(self) }
+        File.open(db_tmpfile, "w") {|f| f << YAML::dump(self) }
+        FileUtils.mv(db_tmpfile, db_file)
       end
     end
 
@@ -139,8 +141,16 @@ module Dbox
       File.join(local_path, DB_FILE)
     end
 
+    def self.db_tmpfile(local_path)
+      File.join(local_path, DB_TMPFILE)
+    end
+
     def db_file
       self.class.db_file(@local_path)
+    end
+
+    def db_tmpfile
+      self.class.db_tmpfile(@local_path)
     end
 
     class DropboxBlob

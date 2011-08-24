@@ -233,9 +233,19 @@ module Dbox
       def update_remote; raise RuntimeError, "Not implemented"; end
 
       def modified?(res)
-        out = !(@revision == res["revision"] && @modified_at == parse_time(res["modified"]))
-        log.debug "#{path}.modified? r#{@revision} =? r#{res["revision"]}, #{@modified_at} =? #{parse_time(res["modified"])} => #{out}"
+        out = !(@revision == res["revision"] && time_to_s(@modified_at) == time_to_s(res["modified"]))
+        log.debug "#{path} modified? => #{out}"
         out
+      end
+
+      def time_to_s(t)
+        case t
+        when Time
+          # matches dropbox time format
+          t.utc.strftime("%a, %d %b %Y %H:%M:%S +0000")
+        when String
+          t
+        end
       end
 
       def parse_time(t)

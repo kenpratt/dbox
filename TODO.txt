@@ -1,3 +1,10 @@
 * Look down directory tree until you hit a .dropbox.db file
 * Add a "sync" command that pushes and pulls in one go
 * Add support for partial push/pull
+
+SQLite:
+* Updating entries
+* Deleting entries
+* Cascading deletes (when deleting folder)
+* Prepared statements
+* Tests!

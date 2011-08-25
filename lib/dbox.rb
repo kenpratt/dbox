@@ -8,9 +8,11 @@ require "time"
 require "yaml"
 require "logger"
 require "cgi"
+require "sqlite3"
 
 require "dbox/loggable"
 require "dbox/api"
+require "dbox/database"
 require "dbox/db"
 
 module Dbox

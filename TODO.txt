@@ -6,5 +6,6 @@ SQLite:
 * Updating entries
 * Deleting entries
 * Cascading deletes (when deleting folder)
+* Indexes
 * Prepared statements
 * Tests!

@@ -58,15 +58,6 @@ module Dbox
     METADATA_COLS = [ :local_path, :remote_path, :version ] # don't need to return id
     ENTRY_COLS    = [ :id, :path, :is_directory, :parent_id, :contents_hash, :modified_at, :revision ]
 
-    def boostrap(remote_path, local_path)
-      @db.execute(%{
-        INSERT INTO metadata (local_path, remote_path, version) VALUES (?, ?, ?);
-      }, local_path, remote_path, 1)
-      @db.execute(%{
-        INSERT INTO entries (path, is_directory) VALUES (?, ?)
-      }, "", 1)
-    end
-
     def bootstrapped?
       n = @db.get_first_value(%{
         SELECT count(id) FROM metadata LIMIT 1;
@@ -108,8 +99,16 @@ module Dbox
 
     private
 
+    def boostrap(remote_path, local_path)
+      @db.execute(%{
+        INSERT INTO metadata (local_path, remote_path, version) VALUES (?, ?, ?);
+      }, local_path, remote_path, 1)
+      @db.execute(%{
+        INSERT INTO entries (path, is_directory) VALUES (?, ?)
+      }, "", 1)
+    end
+
     def find_entry(conditions = "", *args)
-      # TODO run performance test on prepared statement
       res = @db.get_first_row(%{
         SELECT #{ENTRY_COLS.join(",")} FROM entries #{conditions} LIMIT 1;
       }, *args)
@@ -117,22 +116,19 @@ module Dbox
     end
 
     def find_entries(conditions = "", *args)
-      # TODO run performance test on prepared statement
-      res = @db.execute(%{
+      out = []
+      @db.execute(%{
         SELECT #{ENTRY_COLS.join(",")} FROM entries #{conditions} ORDER BY path ASC;
-      }, *args)
-      if res
-        res.map {|r| entry_res_to_hash(r) }
-      else
-        nil
+      }, *args) do |res|
+        out << entry_res_to_hash(res)
       end
+      out
     end
 
     def add_entry(hash)
       h = hash.clone
       h[:modified_at]  = h[:modified_at].to_i if h[:modified_at]
       h[:is_directory] = (h[:is_directory] ? 1 : 0) unless h[:is_directory].nil?
-      # TODO run performance test on prepared statement
       @db.execute(%{
         INSERT INTO entries (#{h.keys.join(",")})
         VALUES (#{(["?"] * h.size).join(",")});

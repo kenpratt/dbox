@@ -11,7 +11,7 @@ module Dbox
       if db.bootstrapped?
         raise DatabaseError, "Database already initialized -- please use 'dbox pull' or 'dbox push'."
       end
-      db.boostrap(remote_path, local_path)
+      db.bootstrap(remote_path, local_path)
       db
     end
 
@@ -35,19 +35,19 @@ module Dbox
     def ensure_schema_exists
       @db.execute_batch(%{
         CREATE TABLE IF NOT EXISTS metadata (
-          id             integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-          local_path     varchar(255) NOT NULL,
-          remote_path    varchar(255) NOT NULL,
-          version        integer NOT NULL
+          id           integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+          local_path   varchar(255) NOT NULL,
+          remote_path  varchar(255) NOT NULL,
+          version      integer NOT NULL
         );
         CREATE TABLE IF NOT EXISTS entries (
-          id             integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-          path           varchar(255) UNIQUE NOT NULL,
-          is_directory   boolean NOT NULL,
-          parent_id      integer,
-          contents_hash  varchar(255),
-          modified_at    datetime,
-          revision       integer
+          id           integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+          path         varchar(255) UNIQUE NOT NULL,
+          is_dir       boolean NOT NULL,
+          parent_id    integer,
+          hash         varchar(255),
+          modified     datetime,
+          revision     integer
         );
         -- TODO run performance tests with and without the indexes on DBs with 10,000s of records
         CREATE INDEX IF NOT EXISTS entry_paths ON entries(path);
@@ -56,7 +56,16 @@ module Dbox
     end
 
     METADATA_COLS = [ :local_path, :remote_path, :version ] # don't need to return id
-    ENTRY_COLS    = [ :id, :path, :is_directory, :parent_id, :contents_hash, :modified_at, :revision ]
+    ENTRY_COLS    = [ :id, :path, :is_dir, :parent_id, :hash, :modified, :revision ]
+
+    def bootstrap(remote_path, local_path)
+      @db.execute(%{
+        INSERT INTO metadata (local_path, remote_path, version) VALUES (?, ?, ?);
+      }, local_path, remote_path, 1)
+      @db.execute(%{
+        INSERT INTO entries (path, is_dir) VALUES (?, ?)
+      }, "", 1)
+    end
 
     def bootstrapped?
       n = @db.get_first_value(%{
@@ -86,27 +95,18 @@ module Dbox
     end
 
     def subdirs(dir_id)
-      find_entries("WHERE parent_id=? AND is_directory=1", dir_id)
+      find_entries("WHERE parent_id=? AND is_dir=1", dir_id)
     end
 
-    def add_directory(path, parent_id, contents_hash, modified_at, revision)
-      add_entry(:is_directory => true, :path => path, :parent_id => parent_id, :modified_at => modified_at, :revision => revision, :contents_hash => contents_hash)
+    def add_directory(path, parent_id, hash, modified, revision)
+      add_entry(:is_dir => true, :path => path, :parent_id => parent_id, :modified => modified, :revision => revision, :hash => hash)
     end
 
-    def add_file(path, parent_id, modified_at, revision)
-      add_entry(:is_directory => false, :path => path, :parent_id => parent_id, :modified_at => modified_at, :revision => revision)
+    def add_file(path, parent_id, modified, revision)
+      add_entry(:is_dir => false, :path => path, :parent_id => parent_id, :modified => modified, :revision => revision)
     end
 
     private
-
-    def boostrap(remote_path, local_path)
-      @db.execute(%{
-        INSERT INTO metadata (local_path, remote_path, version) VALUES (?, ?, ?);
-      }, local_path, remote_path, 1)
-      @db.execute(%{
-        INSERT INTO entries (path, is_directory) VALUES (?, ?)
-      }, "", 1)
-    end
 
     def find_entry(conditions = "", *args)
       res = @db.get_first_row(%{
@@ -127,8 +127,8 @@ module Dbox
 
     def add_entry(hash)
       h = hash.clone
-      h[:modified_at]  = h[:modified_at].to_i if h[:modified_at]
-      h[:is_directory] = (h[:is_directory] ? 1 : 0) unless h[:is_directory].nil?
+      h[:modified]  = h[:modified].to_i if h[:modified]
+      h[:is_dir] = (h[:is_dir] ? 1 : 0) unless h[:is_dir].nil?
       @db.execute(%{
         INSERT INTO entries (#{h.keys.join(",")})
         VALUES (#{(["?"] * h.size).join(",")});
@@ -138,9 +138,9 @@ module Dbox
     def entry_res_to_hash(res)
       if res
         h = make_hash(ENTRY_COLS, res)
-        h[:is_directory] = (h[:is_directory] == 1)
-        h[:modified_at]  = Time.at(h[:modified_at]) if h[:modified_at]
-        h.delete(:contents_hash) unless h[:is_directory]
+        h[:is_dir] = (h[:is_dir] == 1)
+        h[:modified]  = Time.at(h[:modified]) if h[:modified]
+        h.delete(:hash) unless h[:is_dir]
         h
       else
         nil

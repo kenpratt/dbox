@@ -17,7 +17,8 @@ module Dbox
     end
 
     def self.push(local_path)
-      # TODO implement
+      database = Database.load(local_path)
+      Push.new(database, api).execute
     end
 
     def self.move(new_remote_path, local_path)
@@ -313,5 +314,80 @@ module Dbox
       end
     end
 
+    class Push < Operation
+      def initialize(database, api)
+        super(database, api)
+      end
+
+      def practice
+        dir = database.root_dir
+        changes = calculate_changes(dir)
+        log.debug "changes that would be executed:\n" + changes.map {|c| c.inspect }.join("\n")
+      end
+
+      def execute
+        dir = database.root_dir
+        changes = calculate_changes(dir)
+        log.debug "changes that would be executed:\n" + changes.map {|c| c.inspect }.join("\n")
+      end
+
+      def calculate_changes(dir)
+        raise(ArgumentError, "Not a directory: #{dir.inspect}") unless dir[:is_dir]
+
+        out = []
+        recur_dirs = []
+
+        existing_entries = current_dir_entries_as_hash(dir)
+        child_paths = list_contents(dir).sort
+        log.debug "child paths: #{child_paths.inspect}"
+
+        child_paths.each do |p|
+          c = { :path => p, :modified => mtime(p), :is_dir => is_dir(p) }
+          if entry = existing_entries[p]
+            c[:id] = entry[:id]
+            recur_dirs << c if c[:is_dir] # queue dir for later
+            out << [:update, c] if modified?(c) # update iff modified
+          else
+            # create
+            out << [:create, c]
+            recur_dirs << c if c[:is_dir]
+          end
+        end
+
+        # add any deletions
+        out += (existing_entries.keys.sort - child_paths).map do |p|
+          [:delete, existing_entries[p]]
+        end
+
+        # recursively process new & existing subdirectories
+        recur_dirs.each do |dir|
+          out += calculate_changes(dir)
+        end
+
+        out
+      end
+
+      def mtime(path)
+        File.mtime(relative_to_local_path(path))
+      end
+
+      def is_dir(path)
+        File.directory?(relative_to_local_path(path))
+      end
+
+      def modified?(entry)
+        out = mtime(entry[:path]) != entry[:modified]
+        log.debug "#{entry[:path]}: t#{time_to_s(entry[:modified])} vs. t#{time_to_s(mtime(entry[:path]))} => #{out}"
+        log.debug "#{entry[:path]} modified? => #{out}"
+        out
+      end
+
+      def list_contents(dir)
+        local_path = relative_to_local_path(dir[:path])
+        paths = Dir.entries(local_path).reject {|s| s == "." || s == ".." || s.start_with?(".") }
+        log.debug "paths for #{dir[:path]} = #{paths.inspect}"
+        paths.map {|p| local_to_relative_path(File.join(local_path, p)) }
+      end
+    end
   end
 end

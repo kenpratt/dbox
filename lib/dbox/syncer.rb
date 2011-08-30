@@ -201,16 +201,15 @@ module Dbox
           contents.each do |c|
             found_paths << c[:path]
             if entry = existing_entries[c[:path]]
-              # update iff modified
-              if modified?(entry, c)
-                c[:id] = entry[:id]
-                c[:modified] = parse_time(c[:modified])
-                if c[:is_dir]
-                  c[:hash] = entry[:hash]
-                  recur_dirs << c # queue dir for later
-                else
-                  out << [:update, c]
-                end
+              c[:id] = entry[:id]
+              c[:modified] = parse_time(c[:modified])
+              if c[:is_dir]
+                # queue dir for later
+                c[:hash] = entry[:hash]
+                recur_dirs << c
+              else
+                # update iff modified
+                out << [:update, c] if modified?(entry, c)
               end
             else
               # create
@@ -251,8 +250,11 @@ module Dbox
       end
 
       def modified?(entry, res)
-        log.debug "#{entry[:path]}: r#{entry[:revision]} vs. r#{res[:revision]}, h#{entry[:hash]} vs. h#{res[:hash]}, t#{time_to_s(entry[:modified])} vs. t#{time_to_s(res[:modified])}"
-        out = !(entry[:revision] == res[:revision] && entry[:hash] == res[:hash] && time_to_s(entry[:modified]) == time_to_s(res[:modified]))
+        out = (entry[:revision] != res[:revision]) ||
+              (time_to_s(entry[:modified]) != time_to_s(res[:modified]))
+        out ||= (entry[:hash] != res[:hash]) if res.has_key?(:hash)
+
+        log.debug "#{entry[:path]}: r#{entry[:revision]} vs. r#{res[:revision]}, h#{entry[:hash]} vs. h#{res[:hash]}, t#{time_to_s(entry[:modified])} vs. t#{time_to_s(res[:modified])} => #{out}"
         log.debug "#{entry[:path]} modified? => #{out}"
         out
       end

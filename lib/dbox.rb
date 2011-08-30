@@ -9,11 +9,13 @@ require "yaml"
 require "logger"
 require "cgi"
 require "sqlite3"
+require "active_support/core_ext/hash/indifferent_access"
 
 require "dbox/loggable"
 require "dbox/api"
 require "dbox/database"
 require "dbox/db"
+require "dbox/syncer"
 
 module Dbox
   def self.authorize

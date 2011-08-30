@@ -29,10 +29,12 @@ module Dbox
     def initialize(local_path)
       FileUtils.mkdir_p(local_path)
       @db = SQLite3::Database.new(File.join(local_path, DB_FILENAME))
+      @db.trace {|sql| log.debug sql.strip }
       ensure_schema_exists
     end
 
     def ensure_schema_exists
+      # TODO run performance tests with and without the indexes on DBs with 10,000s of records
       @db.execute_batch(%{
         CREATE TABLE IF NOT EXISTS metadata (
           id           integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -49,7 +51,6 @@ module Dbox
           modified     datetime,
           revision     integer
         );
-        -- TODO run performance tests with and without the indexes on DBs with 10,000s of records
         CREATE INDEX IF NOT EXISTS entry_paths ON entries(path);
         CREATE INDEX IF NOT EXISTS entry_parent_ids ON entries(parent_id);
       })
@@ -87,23 +88,32 @@ module Dbox
     end
 
     def find_by_path(path)
+      raise(ArgumentError, "path cannot be null") unless path
       find_entry("WHERE path=?", path)
     end
 
     def contents(dir_id)
+      raise(ArgumentError, "dir_id cannot be null") unless dir_id
       find_entries("WHERE parent_id=?", dir_id)
     end
 
     def subdirs(dir_id)
+      raise(ArgumentError, "dir_id cannot be null") unless dir_id
       find_entries("WHERE parent_id=? AND is_dir=1", dir_id)
     end
 
-    def add_directory(path, parent_id, hash, modified, revision)
-      add_entry(:is_dir => true, :path => path, :parent_id => parent_id, :modified => modified, :revision => revision, :hash => hash)
+    def add_entry(path, is_dir, parent_id, modified, revision)
+      insert_entry(:path => path, :is_dir => is_dir, :parent_id => parent_id, :modified => modified, :revision => revision)
     end
 
-    def add_file(path, parent_id, modified, revision)
-      add_entry(:is_dir => false, :path => path, :parent_id => parent_id, :modified => modified, :revision => revision)
+    def update_entry_by_path(path, fields)
+      raise(ArgumentError, "path cannot be null") unless path
+      update_entry(["WHERE path=?", path], fields)
+    end
+
+    def delete_entry_by_path(path)
+      raise(ArgumentError, "path cannot be null") unless path
+      delete_entry("WHERE path=?", path)
     end
 
     private
@@ -125,7 +135,7 @@ module Dbox
       out
     end
 
-    def add_entry(hash)
+    def insert_entry(hash)
       h = hash.clone
       h[:modified]  = h[:modified].to_i if h[:modified]
       h[:is_dir] = (h[:is_dir] ? 1 : 0) unless h[:is_dir].nil?
@@ -133,6 +143,22 @@ module Dbox
         INSERT INTO entries (#{h.keys.join(",")})
         VALUES (#{(["?"] * h.size).join(",")});
       }, *h.values)
+    end
+
+    def update_entry(where_clause, hash)
+      h = hash.clone
+      h[:modified]  = h[:modified].to_i if h[:modified]
+      conditions, *args = *where_clause
+      set_str = h.keys.map {|k| "#{k}=?" }.join(",")
+      @db.execute(%{
+        UPDATE entries SET #{set_str} #{conditions};
+      }, *(h.values + args))
+    end
+
+    def delete_entry(conditions = "", *args)
+      @db.execute(%{
+        DELETE FROM entries #{conditions};
+      }, *args)
     end
 
     def entry_res_to_hash(res)

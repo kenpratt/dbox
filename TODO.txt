@@ -1,11 +1,17 @@
-* Look down directory tree until you hit a .dropbox.db file
-* Add a "sync" command that pushes and pulls in one go
-* Add support for partial push/pull
-
-SQLite:
+Now (SQLite):
 * Updating entries
 * Deleting entries
 * Cascading deletes (when deleting folder)
 * Indexes
 * Prepared statements
 * Tests!
+
+Soon:
+* Fix saving of contents hash
+* Parallelize uploads and downloads with threadss
+* Stream file to disk instead of downloading into memory
+
+Later:
+* Look down directory tree until you hit a .dropbox.db file
+* Add a "sync" command that pushes and pulls in one go
+* Add support for partial push/pull

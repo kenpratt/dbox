@@ -52,13 +52,15 @@ module Dbox
         res = yield
         case res
         when Hash
-          res
+          HashWithIndifferentAccess.new(res)
         when String
           res
         when Net::HTTPNotFound
           raise RemoteMissing, "#{path} does not exist on Dropbox"
         when Net::HTTPForbidden
           raise RequestDenied, "Operation on #{path} denied"
+        when Net::HTTPNotModified
+          :not_modified
         else
           raise RuntimeError, "Unexpected result: #{res.inspect}"
         end
@@ -68,10 +70,10 @@ module Dbox
       end
     end
 
-    def metadata(path = "/")
+    def metadata(path = "/", hash = nil)
       log.debug "Fetching metadata for #{path}"
       run(path) do
-        res = @client.metadata(@conf["root"], escape_path(path))
+        res = @client.metadata(@conf["root"], escape_path(path), 10000, hash)
         log.debug res.inspect
         res
       end

@@ -80,7 +80,7 @@ module Dbox
       res = @db.get_first_row(%{
         SELECT #{cols.join(',')} FROM metadata LIMIT 1;
       })
-      make_hash(cols, res) if res
+      make_fields(cols, res) if res
     end
 
     def root_dir
@@ -122,7 +122,7 @@ module Dbox
       res = @db.get_first_row(%{
         SELECT #{ENTRY_COLS.join(",")} FROM entries #{conditions} LIMIT 1;
       }, *args)
-      entry_res_to_hash(res)
+      entry_res_to_fields(res)
     end
 
     def find_entries(conditions = "", *args)
@@ -130,13 +130,13 @@ module Dbox
       @db.execute(%{
         SELECT #{ENTRY_COLS.join(",")} FROM entries #{conditions} ORDER BY path ASC;
       }, *args) do |res|
-        out << entry_res_to_hash(res)
+        out << entry_res_to_fields(res)
       end
       out
     end
 
-    def insert_entry(hash)
-      h = hash.clone
+    def insert_entry(fields)
+      h = fields.clone
       h[:modified]  = h[:modified].to_i if h[:modified]
       h[:is_dir] = (h[:is_dir] ? 1 : 0) unless h[:is_dir].nil?
       @db.execute(%{
@@ -145,8 +145,8 @@ module Dbox
       }, *h.values)
     end
 
-    def update_entry(where_clause, hash)
-      h = hash.clone
+    def update_entry(where_clause, fields)
+      h = fields.clone
       h[:modified]  = h[:modified].to_i if h[:modified]
       conditions, *args = *where_clause
       set_str = h.keys.map {|k| "#{k}=?" }.join(",")
@@ -161,9 +161,9 @@ module Dbox
       }, *args)
     end
 
-    def entry_res_to_hash(res)
+    def entry_res_to_fields(res)
       if res
-        h = make_hash(ENTRY_COLS, res)
+        h = make_fields(ENTRY_COLS, res)
         h[:is_dir] = (h[:is_dir] == 1)
         h[:modified]  = Time.at(h[:modified]) if h[:modified]
         h.delete(:hash) unless h[:is_dir]
@@ -173,9 +173,9 @@ module Dbox
       end
     end
 
-    def make_hash(keys, vals)
+    def make_fields(keys, vals)
       if keys && vals
-        raise ArgumentError.new("Can't make a hash with #{keys.size} keys and #{vals.size} vals") unless keys.size == vals.size
+        raise ArgumentError.new("Can't make a fields hash with #{keys.size} keys and #{vals.size} vals") unless keys.size == vals.size
         out = {}
         keys.each_with_index {|k, i| out[k] = vals[i] }
         out

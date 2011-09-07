@@ -209,7 +209,7 @@ module Dbox
         changelist
       end
 
-      def calculate_changes(dir)
+      def calculate_changes(dir, operation = :update)
         raise(ArgumentError, "Not a directory: #{dir.inspect}") unless dir[:is_dir]
 
         out = []
@@ -220,13 +220,17 @@ module Dbox
         if res == :not_modified
           # directory itself was not modified, but we still need to
           # recur on subdirectories
-          recur_dirs += database.subdirs(dir[:id])
+          recur_dirs += database.subdirs(dir[:id]).map {|d| [:update, d] }
         else
           raise(ArgumentError, "Not a directory: #{res.inspect}") unless res[:is_dir]
 
           # dir may have changed -- calculate changes on contents
           contents = res.delete(:contents)
-          out << [:update, res] if modified?(dir, res)
+          if operation == :create || modified?(dir, res)
+            res[:parent_id] = dir[:parent_id] if dir[:parent_id]
+            res[:parent_path] = dir[:parent_path] if dir[:parent_path]
+            out << [operation, res]
+          end
           found_paths = []
           existing_entries = current_dir_entries_as_hash(dir)
 
@@ -239,7 +243,7 @@ module Dbox
               if c[:is_dir]
                 # queue dir for later
                 c[:hash] = entry[:hash]
-                recur_dirs << c
+                recur_dirs << [:update, c]
               else
                 # update iff modified
                 out << [:update, c] if modified?(entry, c)
@@ -247,8 +251,12 @@ module Dbox
             else
               # create
               c[:modified] = parse_time(c[:modified])
-              out << [:create, c]
-              recur_dirs << c if c[:is_dir]
+              if c[:is_dir]
+                # queue dir for later
+                recur_dirs << [:create, c]
+              else
+                out << [:create, c]
+              end
             end
           end
 
@@ -259,8 +267,8 @@ module Dbox
         end
 
         # recursively process new & existing subdirectories
-        recur_dirs.each do |dir|
-          out += calculate_changes(dir)
+        recur_dirs.each do |operation, dir|
+          out += calculate_changes(dir, operation)
         end
 
         out

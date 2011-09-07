@@ -136,6 +136,38 @@ module Dbox
       def update_file_timestamp(entry)
         File.utime(Time.now, entry[:modified], relative_to_local_path(entry[:path]))
       end
+
+      def gather_remote_info(entry)
+        res = api.metadata(relative_to_remote_path(entry[:path]), entry[:hash])
+        case res
+        when Hash
+          out = process_basic_remote_props(res)
+          out[:id] = entry[:id] if entry[:id]
+          if res[:contents]
+            out[:contents] = remove_dotfiles(res[:contents]).map do |c|
+              o = process_basic_remote_props(c)
+              o[:parent_id] = entry[:id] if entry[:id]
+              o[:parent_path] = entry[:path]
+              o
+            end
+          end
+          out
+        when :not_modified
+          :not_modified
+        else
+          raise(RuntimeError, "Invalid result from server: #{res.inspect}")
+        end
+      end
+
+      def process_basic_remote_props(res)
+        out = {}
+        out[:path]     = remote_to_relative_path(res[:path])
+        out[:modified] = parse_time(res[:modified])
+        out[:is_dir]   = res[:is_dir]
+        out[:hash]     = res[:hash] if res[:hash]
+        out[:revision] = res[:revision] if res[:revision]
+        out
+      end
     end
 
     class Pull < Operation
@@ -232,22 +264,6 @@ module Dbox
         end
 
         out
-      end
-
-      def gather_remote_info(dir)
-        res = api.metadata(relative_to_remote_path(dir[:path]), dir[:hash])
-        if res.kind_of?(Hash)
-          res[:id] = dir[:id] if dir[:id]
-          res[:path] = remote_to_relative_path(res[:path])
-          res[:modified] = parse_time(res[:modified])
-          res[:contents] = remove_dotfiles(res[:contents])
-          res[:contents].each do |c|
-            c[:path] = remote_to_relative_path(c[:path])
-            c[:parent_id] = dir[:id] if dir[:id]
-            c[:parent_path] = dir[:path]
-          end
-        end
-        res
       end
 
       def modified?(entry, res)

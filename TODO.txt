@@ -1,14 +1,13 @@
 Now (SQLite):
-* Updating entries
-* Deleting entries
+* Tests!
+* Migration from old DB format
 * Cascading deletes (when deleting folder)
 * Indexes
 * Prepared statements
-* Tests!
 
 Soon:
 * Fix saving of contents hash
-* Parallelize uploads and downloads with threadss
+* Parallelize uploads and downloads with threads
 * Stream file to disk instead of downloading into memory
 
 Later:

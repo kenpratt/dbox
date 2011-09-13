@@ -25,39 +25,34 @@ module Dbox
   def self.create(remote_path, local_path)
     remote_path = clean_remote_path(remote_path)
     local_path = clean_local_path(local_path)
-    Dbox::DB.create(remote_path, local_path)
+    Dbox::Syncer.create(remote_path, local_path)
   end
 
   def self.clone(remote_path, local_path)
     remote_path = clean_remote_path(remote_path)
     local_path = clean_local_path(local_path)
-    Dbox::DB.clone(remote_path, local_path)
+    Dbox::Syncer.clone(remote_path, local_path)
   end
 
   def self.pull(local_path)
     local_path = clean_local_path(local_path)
-    Dbox::DB.pull(local_path)
+    Dbox::Syncer.pull(local_path)
   end
 
   def self.push(local_path)
     local_path = clean_local_path(local_path)
-    Dbox::DB.push(local_path)
+    Dbox::Syncer.push(local_path)
   end
 
   def self.move(new_remote_path, local_path)
     new_remote_path = clean_remote_path(new_remote_path)
     local_path = clean_local_path(local_path)
-    Dbox::DB.move(new_remote_path, local_path)
+    Dbox::Syncer.move(new_remote_path, local_path)
   end
 
   def self.exists?(local_path)
     local_path = clean_local_path(local_path)
-    Dbox::DB.exists?(local_path)
-  end
-
-  def self.corrupt?(local_path)
-    local_path = clean_local_path(local_path)
-    Dbox::DB.corrupt?(local_path)
+    Dbox::Syncer.exists?(local_path)
   end
 
   private

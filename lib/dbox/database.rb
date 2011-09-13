@@ -23,6 +23,10 @@ module Dbox
       db
     end
 
+    def self.exists?(local_path)
+      File.exists?(File.join(local_path, DB_FILENAME))
+    end
+
     # IMPORTANT: Database.new is private. Please use Database.create
     # or Database.load as the entry point.
     private_class_method :new

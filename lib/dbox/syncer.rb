@@ -191,7 +191,7 @@ module Dbox
           when :create
             c[:is_dir] ? create_dir(c) : create_file(c)
             c[:parent_id] ||= lookup_id_by_path(c[:parent_path])
-            database.add_entry(c[:path], c[:is_dir], c[:parent_id], c[:modified], c[:revision])
+            database.add_entry(c[:path], c[:is_dir], c[:parent_id], c[:modified], c[:revision], c[:hash])
             changelist[:created] << c[:path]
           when :update
             c[:is_dir] ? update_dir(c) : update_file(c)
@@ -352,7 +352,43 @@ module Dbox
       def execute
         dir = database.root_dir
         changes = calculate_changes(dir)
-        log.debug "changes that would be executed:\n" + changes.map {|c| c.inspect }.join("\n")
+        log.debug "executing changes:\n" + changes.map {|c| c.inspect }.join("\n")
+        changelist = { :created => [], :deleted => [], :updated => [] }
+        changes.each do |op, c|
+          case op
+          when :create
+            c[:is_dir] ? create_dir(c) : create_file(c)
+            c[:parent_id] ||= lookup_id_by_path(c[:parent_path])
+
+            # grab metadata from server
+            res = gather_remote_info(c)
+            database.add_entry(c[:path], c[:is_dir], c[:parent_id], res[:modified], res[:revision], res[:hash])
+            update_file_timestamp(database.find_by_path(c[:path]))
+
+            changelist[:created] << c[:path]
+          when :update
+            existing = database.find_by_path(c[:path])
+            unless existing[:is_dir] == c[:is_dir]
+              raise(RuntimeError, "Mode on #{c[:path]} changed between file and dir -- not supported yet")
+            end
+            c[:is_dir] ? update_dir(c) : update_file(c)
+
+            # update metadata from server
+            res = gather_remote_info(c)
+            database.update_entry_by_path(c[:path], :modified => res[:modified], :revision => res[:revision], :hash => res[:hash])
+            update_file_timestamp(database.find_by_path(c[:path]))
+
+            changelist[:updated] << c[:path]
+          when :delete
+            c[:is_dir] ? delete_dir(c) : delete_file(c)
+            database.delete_entry_by_path(c[:path])
+            changelist[:deleted] << c[:path]
+          else
+            raise(RuntimeError, "Unknown operation type: #{op}")
+          end
+        end
+        changelist.keys.each {|k| changelist[k].sort! }
+        changelist
       end
 
       def calculate_changes(dir)
@@ -366,11 +402,11 @@ module Dbox
         log.debug "child paths: #{child_paths.inspect}"
 
         child_paths.each do |p|
-          c = { :path => p, :modified => mtime(p), :is_dir => is_dir(p) }
+          c = { :path => p, :modified => mtime(p), :is_dir => is_dir(p), :parent_path => dir[:path] }
           if entry = existing_entries[p]
             c[:id] = entry[:id]
             recur_dirs << c if c[:is_dir] # queue dir for later
-            out << [:update, c] if modified?(c) # update iff modified
+            out << [:update, c] if modified?(entry, c) # update iff modified
           else
             # create
             out << [:create, c]
@@ -399,9 +435,11 @@ module Dbox
         File.directory?(relative_to_local_path(path))
       end
 
-      def modified?(entry)
-        out = mtime(entry[:path]) != entry[:modified]
-        log.debug "#{entry[:path]}: t#{time_to_s(entry[:modified])} vs. t#{time_to_s(mtime(entry[:path]))} => #{out}"
+      def modified?(entry, res)
+        log.debug "entry: #{entry.inspect}"
+        log.debug "res: #{res.inspect}"
+        out = time_to_s(entry[:modified]) != time_to_s(res[:modified])
+        log.debug "#{entry[:path]}: t#{time_to_s(entry[:modified])} vs. t#{time_to_s(res[:modified])} => #{out}"
         log.debug "#{entry[:path]} modified? => #{out}"
         out
       end
@@ -411,6 +449,44 @@ module Dbox
         paths = Dir.entries(local_path).reject {|s| s == "." || s == ".." || s.start_with?(".") }
         log.debug "paths for #{dir[:path]} = #{paths.inspect}"
         paths.map {|p| local_to_relative_path(File.join(local_path, p)) }
+      end
+
+      def create_dir(dir)
+        remote_path = relative_to_remote_path(dir[:path])
+        log.info "Creating #{remote_path}"
+        api.create_dir(remote_path)
+      end
+
+      def update_dir(dir)
+        # do nothing
+      end
+
+      def delete_dir(dir)
+        remote_path = relative_to_remote_path(dir[:path])
+        log.info "Deleting #{remote_path}"
+        api.delete_dir(remote_path)
+      end
+
+      def create_file(file)
+        upload(file)
+      end
+
+      def update_file(file)
+        upload(file)
+      end
+
+      def delete_file(file)
+        remote_path = relative_to_remote_path(file[:path])
+        log.info "Deleting #{remote_path}"
+        api.delete_file(remote_path)
+      end
+
+      def upload(file)
+        local_path = relative_to_local_path(file[:path])
+        remote_path = relative_to_remote_path(file[:path])
+        File.open(local_path) do |f|
+          api.put_file(remote_path, f)
+        end
       end
     end
   end

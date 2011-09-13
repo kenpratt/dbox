@@ -102,8 +102,8 @@ module Dbox
       find_entries("WHERE parent_id=? AND is_dir=1", dir_id)
     end
 
-    def add_entry(path, is_dir, parent_id, modified, revision)
-      insert_entry(:path => path, :is_dir => is_dir, :parent_id => parent_id, :modified => modified, :revision => revision)
+    def add_entry(path, is_dir, parent_id, modified, revision, hash)
+      insert_entry(:path => path, :is_dir => is_dir, :parent_id => parent_id, :modified => modified, :revision => revision, :hash => hash)
     end
 
     def update_entry_by_path(path, fields)

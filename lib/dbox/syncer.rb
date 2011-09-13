@@ -3,7 +3,8 @@ module Dbox
     include Loggable
 
     def self.create(remote_path, local_path)
-      # TODO implement
+      api.create_dir(remote_path)
+      clone(remote_path, local_path)
     end
 
     def self.clone(remote_path, local_path)

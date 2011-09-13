@@ -23,7 +23,9 @@ module Dbox
     end
 
     def self.move(new_remote_path, local_path)
-      # TODO implement
+      database = Database.load(local_path)
+      api.move(database.metadata[:remote_path], new_remote_path)
+      database.update_metadata(:remote_path => new_remote_path)
     end
 
     def self.api

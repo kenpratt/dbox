@@ -83,6 +83,13 @@ module Dbox
       make_fields(cols, res) if res
     end
 
+    def update_metadata(fields)
+      set_str = fields.keys.map {|k| "#{k}=?" }.join(",")
+      @db.execute(%{
+        UPDATE metadata SET #{set_str};
+      }, *fields.values)
+    end
+
     def root_dir
       find_entry("WHERE parent_id is NULL")
     end

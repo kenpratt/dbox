@@ -8,6 +8,7 @@ module Dbox
     end
 
     def self.clone(remote_path, local_path)
+      api.metadata(remote_path) # ensure remote exists
       database = Database.create(remote_path, local_path)
       Pull.new(database, api).execute
     end
@@ -360,10 +361,16 @@ module Dbox
         changes.each do |op, c|
           case op
           when :create
-            c[:is_dir] ? create_dir(c) : create_file(c)
             c[:parent_id] ||= lookup_id_by_path(c[:parent_path])
 
-            # grab metadata from server
+            # do server operation
+            if c[:is_dir]
+              create_dir(c)
+            else
+              upload_file(c)
+            end
+
+            # grab metadata from server & add entry to DB
             res = gather_remote_info(c)
             database.add_entry(c[:path], c[:is_dir], c[:parent_id], res[:modified], res[:revision], res[:hash])
             update_file_timestamp(database.find_by_path(c[:path]))
@@ -374,16 +381,19 @@ module Dbox
             unless existing[:is_dir] == c[:is_dir]
               raise(RuntimeError, "Mode on #{c[:path]} changed between file and dir -- not supported yet")
             end
-            c[:is_dir] ? update_dir(c) : update_file(c)
 
-            # update metadata from server
-            res = gather_remote_info(c)
-            database.update_entry_by_path(c[:path], :modified => res[:modified], :revision => res[:revision], :hash => res[:hash])
-            update_file_timestamp(database.find_by_path(c[:path]))
-
-            changelist[:updated] << c[:path]
+            # only update files -- nothing to do to update a dir
+            if !c[:is_dir]
+              upload_file(c)
+              force_metadata_update_from_server(c)
+              changelist[:updated] << c[:path]
+            end
           when :delete
-            c[:is_dir] ? delete_dir(c) : delete_file(c)
+            if c[:is_dir]
+              delete_dir(c)
+            else
+              delete_file(c)
+            end
             database.delete_entry_by_path(c[:path])
             changelist[:deleted] << c[:path]
           else
@@ -402,8 +412,9 @@ module Dbox
 
         # handle root dir
         if dir[:parent_id] == nil
-          c = { :path => dir[:path], :modified => mtime(dir[:path]), :is_dir => true, :parent_id => nil }
-          out << [:update, c] if modified?(dir, c)
+          c = dir.clone
+          c[:modified] = mtime(dir[:path])
+          out << [:update, dir] if modified?(dir, c)
         end
 
         existing_entries = current_dir_entries_as_hash(dir)
@@ -466,22 +477,10 @@ module Dbox
         api.create_dir(remote_path)
       end
 
-      def update_dir(dir)
-        # do nothing
-      end
-
       def delete_dir(dir)
         remote_path = relative_to_remote_path(dir[:path])
         log.info "Deleting #{remote_path}"
         api.delete_dir(remote_path)
-      end
-
-      def create_file(file)
-        upload(file)
-      end
-
-      def update_file(file)
-        upload(file)
       end
 
       def delete_file(file)
@@ -490,12 +489,20 @@ module Dbox
         api.delete_file(remote_path)
       end
 
-      def upload(file)
+      def upload_file(file)
         local_path = relative_to_local_path(file[:path])
         remote_path = relative_to_remote_path(file[:path])
         File.open(local_path) do |f|
           api.put_file(remote_path, f)
         end
+      end
+
+      def force_metadata_update_from_server(entry)
+        res = gather_remote_info(entry)
+        unless res == :not_modified
+          database.update_entry_by_path(entry[:path], :modified => res[:modified], :revision => res[:revision], :hash => res[:hash])
+        end
+        update_file_timestamp(database.find_by_path(entry[:path]))
       end
     end
   end

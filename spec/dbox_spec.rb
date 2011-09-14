@@ -22,8 +22,13 @@ describe Dbox do
 
   describe "#create" do
     it "creates the local directory" do
-      Dbox.create(@remote, @local)
+      Dbox.create(@remote, @local).should eql(:created => [], :deleted => [], :updated => [""])
       @local.should exist
+    end
+
+    it "creates the remote directory" do
+      Dbox.create(@remote, @local).should eql(:created => [], :deleted => [], :updated => [""])
+      ensure_remote_exists(@remote)
     end
 
     it "should fail if the remote already exists" do
@@ -39,7 +44,7 @@ describe Dbox do
       Dbox.create(@remote, @local)
       rm_rf @local
       @local.should_not exist
-      Dbox.clone(@remote, @local)
+      Dbox.clone(@remote, @local).should eql(:created => [], :deleted => [], :updated => [""])
       @local.should exist
     end
 
@@ -51,12 +56,13 @@ describe Dbox do
 
   describe "#pull" do
     it "should fail if the local dir is missing" do
-      expect { Dbox.pull(@local) }.to raise_error(Dbox::MissingDatabase)
+      expect { Dbox.pull(@local) }.to raise_error(Dbox::DatabaseError)
     end
 
     it "should fail if the remote dir is missing" do
       Dbox.create(@remote, @local)
-      modify_dbfile {|s| s.sub(/^remote_path: \/.*$/, "remote_path: /#{randname()}") }
+      db = Dbox::Database.load(@local)
+      db.update_metadata(:remote_path => "/" + randname())
       expect { Dbox.pull(@local) }.to raise_error(Dbox::RemoteMissing)
     end
 
@@ -74,7 +80,7 @@ describe Dbox do
       touch "#{@alternate}/hello.txt"
       Dbox.push(@alternate).should eql(:created => ["hello.txt"], :deleted => [], :updated => [])
 
-      Dbox.pull(@local).should eql(:created => ["hello.txt"], :deleted => [], :updated => [])
+      Dbox.pull(@local).should eql(:created => ["hello.txt"], :deleted => [], :updated => [""])
       "#{@local}/hello.txt".should exist
     end
 
@@ -83,7 +89,7 @@ describe Dbox do
       touch "#{@local}/hello.txt"
       Dbox.push(@local).should eql(:created => ["hello.txt"], :deleted => [], :updated => [])
       rm "#{@local}/hello.txt"
-      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [])
+      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [""])
       "#{@local}/hello.txt".should_not exist
     end
 
@@ -99,23 +105,28 @@ describe Dbox do
       touch "#{@alternate}/bar.txt"
       touch "#{@alternate}/baz.txt"
       Dbox.push(@alternate).should eql(:created => ["bar.txt", "baz.txt", "foo.txt"], :deleted => [], :updated => [])
+      Dbox.pull(@alternate).should eql(:created => [], :deleted => [], :updated => [""])
+      Dbox.pull(@alternate).should eql(:created => [], :deleted => [], :updated => [])
 
-      Dbox.pull(@local).should eql(:created => ["bar.txt", "baz.txt", "foo.txt"], :deleted => [], :updated => [])
+      Dbox.pull(@local).should eql(:created => ["bar.txt", "baz.txt", "foo.txt"], :deleted => [], :updated => [""])
+      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [])
 
-      sleep 1
       mkdir "#{@alternate}/subdir"
       touch "#{@alternate}/subdir/one.txt"
       rm "#{@alternate}/foo.txt"
       File.open("#{@alternate}/baz.txt", "w") {|f| f << "baaz" }
       Dbox.push(@alternate).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => ["foo.txt"], :updated => ["baz.txt"])
+      Dbox.pull(@alternate).should eql(:created => [], :deleted => [], :updated => ["", "subdir"])
+      Dbox.pull(@alternate).should eql(:created => [], :deleted => [], :updated => [])
 
-      Dbox.pull(@local).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => ["foo.txt"], :updated => ["baz.txt"])
+      Dbox.pull(@local).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => ["foo.txt"], :updated => ["", "baz.txt"])
+      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [])
     end
   end
 
   describe "#push" do
     it "should fail if the local dir is missing" do
-      expect { Dbox.push(@local) }.to raise_error(Dbox::MissingDatabase)
+      expect { Dbox.push(@local) }.to raise_error(Dbox::DatabaseError)
     end
 
     it "should be able to push" do
@@ -123,10 +134,31 @@ describe Dbox do
       Dbox.push(@local).should eql(:created => [], :deleted => [], :updated => [])
     end
 
-    it "should be able to push new file" do
+    it "should be able to push a new file" do
       Dbox.create(@remote, @local)
       touch "#{@local}/foo.txt"
       Dbox.push(@local).should eql(:created => ["foo.txt"], :deleted => [], :updated => [])
+    end
+
+    it "should be able to push a new dir" do
+      Dbox.create(@remote, @local)
+      mkdir "#{@local}/subdir"
+      Dbox.push(@local).should eql(:created => ["subdir"], :deleted => [], :updated => [])
+    end
+
+    it "should be able to push a new dir with a file in it" do
+      Dbox.create(@remote, @local)
+      mkdir "#{@local}/subdir"
+      touch "#{@local}/subdir/foo.txt"
+      Dbox.push(@local).should eql(:created => ["subdir", "subdir/foo.txt"], :deleted => [], :updated => [])
+    end
+
+    it "should be able to push a new file in an existing dir" do
+      Dbox.create(@remote, @local)
+      mkdir "#{@local}/subdir"
+      Dbox.push(@local)
+      touch "#{@local}/subdir/foo.txt"
+      Dbox.push(@local).should eql(:created => ["subdir/foo.txt"], :deleted => [], :updated => [])
     end
 
     it "should create the remote dir if it is missing" do
@@ -134,39 +166,32 @@ describe Dbox do
       touch "#{@local}/foo.txt"
       @new_name = randname()
       @new_remote = File.join(REMOTE_TEST_PATH, @new_name)
-      modify_dbfile {|s| s.sub(/^remote_path: \/.*$/, "remote_path: #{@new_remote}") }
+      db = Dbox::Database.load(@local)
+      db.update_metadata(:remote_path => @new_remote)
       Dbox.push(@local).should eql(:created => ["foo.txt"], :deleted => [], :updated => [])
-    end
-
-    it "should be able to push nested content" do
-      Dbox.create(@remote, @local)
-      mkdir "#{@local}/subdir"
-      touch "#{@local}/subdir/foo.txt"
-      Dbox.push(@local).should eql(:created => ["subdir", "subdir/foo.txt"], :deleted => [], :updated => [])
     end
 
     it "should not re-download the file after creating" do
       Dbox.create(@remote, @local)
       touch "#{@local}/foo.txt"
       Dbox.push(@local).should eql(:created => ["foo.txt"], :deleted => [], :updated => [])
-      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [])
+      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [""])
     end
 
     it "should not re-download the file after updating" do
       Dbox.create(@remote, @local)
       touch "#{@local}/foo.txt"
       Dbox.push(@local).should eql(:created => ["foo.txt"], :deleted => [], :updated => [])
-      sleep 1
       File.open("#{@local}/foo.txt", "w") {|f| f << "fooz" }
       Dbox.push(@local).should eql(:created => [], :deleted => [], :updated => ["foo.txt"])
-      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [])
+      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [""])
     end
 
     it "should not re-download the dir after creating" do
       Dbox.create(@remote, @local)
       mkdir "#{@local}/subdir"
       Dbox.push(@local).should eql(:created => ["subdir"], :deleted => [], :updated => [])
-      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [])
+      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [""])
     end
 
     it "should handle a complex set of changes" do
@@ -175,13 +200,12 @@ describe Dbox do
       touch "#{@local}/bar.txt"
       touch "#{@local}/baz.txt"
       Dbox.push(@local).should eql(:created => ["bar.txt", "baz.txt", "foo.txt"], :deleted => [], :updated => [])
-      sleep 1
       mkdir "#{@local}/subdir"
       touch "#{@local}/subdir/one.txt"
       rm "#{@local}/foo.txt"
       touch "#{@local}/baz.txt"
       Dbox.push(@local).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => ["foo.txt"], :updated => ["baz.txt"])
-      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [])
+      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => ["", "subdir"])
     end
 
     it "should be able to handle crazy filenames" do
@@ -192,17 +216,17 @@ describe Dbox do
       touch "#{@local}/#{crazy_name2}"
       Dbox.push(@local).should eql(:created => [crazy_name1, crazy_name2], :deleted => [], :updated => [])
       rm_rf @local
-      Dbox.clone(@remote, @local).should eql(:created => [crazy_name1, crazy_name2], :deleted => [], :updated => [])
+      Dbox.clone(@remote, @local).should eql(:created => [crazy_name1, crazy_name2], :deleted => [], :updated => [""])
     end
 
-    it "should be able to handle directory names" do
+    it "should be able to handle crazy directory names" do
       Dbox.create(@remote, @local)
       crazy_name1 = "Day[J] #42"
       mkdir File.join(@local, crazy_name1)
       touch File.join(@local, crazy_name1, "foo.txt")
       Dbox.push(@local).should eql(:created => [crazy_name1, File.join(crazy_name1, "foo.txt")], :deleted => [], :updated => [])
       rm_rf @local
-      Dbox.clone(@remote, @local).should eql(:created => [crazy_name1, File.join(crazy_name1, "foo.txt")], :deleted => [], :updated => [])
+      Dbox.clone(@remote, @local).should eql(:created => [crazy_name1, File.join(crazy_name1, "foo.txt")], :deleted => [], :updated => [""])
     end
   end
 
@@ -214,7 +238,7 @@ describe Dbox do
     end
 
     it "should fail if the local dir is missing" do
-      expect { Dbox.move(@new_remote, @local) }.to raise_error(Dbox::MissingDatabase)
+      expect { Dbox.move(@new_remote, @local) }.to raise_error(Dbox::DatabaseError)
     end
 
     it "should be able to move" do
@@ -242,9 +266,9 @@ describe Dbox do
       Dbox.exists?(@local).should be_true
     end
 
-    it "should be false if the dir exists but is missing a .dropbox.db file" do
+    it "should be false if the dir exists but is missing a .dbox.sqlite3 file" do
       Dbox.create(@remote, @local)
-      rm "#{@local}/.dropbox.db"
+      rm "#{@local}/.dbox.sqlite3"
       Dbox.exists?(@local).should be_false
     end
   end

@@ -24,15 +24,12 @@ def randname
   "test-#{u}"
 end
 
-def modify_dbfile
-  dbfile = File.join(@local, Dbox::DB::DB_FILE)
-  s = File.open(dbfile, "r").read
-  s = yield s
-  File.open(dbfile, "w") {|f| f << s }
-end
-
 def clear_test_log
   File.open(LOGFILE, "w") {|f| f << "" }
+end
+
+def ensure_remote_exists(path)
+  expect { Dbox::Syncer.api.metadata(path) }.to_not raise_error
 end
 
 def log

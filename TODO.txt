@@ -1,6 +1,5 @@
 Now (SQLite):
 * Migration from old DB format
-* Cascading deletes (when deleting folder)
 * Indexes
 * Prepared statements
 

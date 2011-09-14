@@ -34,6 +34,7 @@ module Dbox
       FileUtils.mkdir_p(local_path)
       @db = SQLite3::Database.new(File.join(local_path, DB_FILENAME))
       @db.trace {|sql| log.debug sql.strip }
+      @db.execute("PRAGMA foreign_keys = ON;")
       ensure_schema_exists
     end
 
@@ -50,7 +51,7 @@ module Dbox
           id           integer PRIMARY KEY AUTOINCREMENT NOT NULL,
           path         varchar(255) UNIQUE NOT NULL,
           is_dir       boolean NOT NULL,
-          parent_id    integer,
+          parent_id    integer REFERENCES entries(id) ON DELETE CASCADE,
           hash         varchar(255),
           modified     datetime,
           revision     integer

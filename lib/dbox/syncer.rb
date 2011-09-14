@@ -410,13 +410,6 @@ module Dbox
         out = []
         recur_dirs = []
 
-        # handle root dir
-        if dir[:parent_id] == nil
-          c = dir.clone
-          c[:modified] = mtime(dir[:path])
-          out << [:update, dir] if modified?(dir, c)
-        end
-
         existing_entries = current_dir_entries_as_hash(dir)
         child_paths = list_contents(dir).sort
         log.debug "child paths: #{child_paths.inspect}"

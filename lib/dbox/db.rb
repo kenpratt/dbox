@@ -9,7 +9,7 @@ module Dbox
     DB_FILE = ".dropbox.db"
     DB_TMPFILE = ".dropbox.db.tmp"
 
-    attr_accessor :local_path
+    attr_accessor :local_path, :remote_path, :root
 
     def self.create(remote_path, local_path)
       api.create_dir(remote_path)
@@ -58,6 +58,10 @@ module Dbox
       else
         raise MissingDatabase, "No DB file found in #{local_path}"
       end
+    end
+
+    def self.destroy!(local_path)
+      FileUtils.rm(db_file(local_path)) if exists?(local_path)
     end
 
     # IMPORTANT: DropboxDb.new is private. Please use DropboxDb.create, DropboxDb.clone, or DropboxDb.load as the entry point.

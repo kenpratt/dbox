@@ -27,6 +27,12 @@ module Dbox
       File.exists?(File.join(local_path, DB_FILENAME))
     end
 
+    def self.migrate_from_old_db_format(old_db)
+      new_db = create(old_db.remote_path, old_db.local_path)
+      new_db.delete_entry_by_path("") # clear out root record
+      new_db.migrate_entry_from_old_db_format(old_db.root)
+    end
+
     # IMPORTANT: Database.new is private. Please use Database.create
     # or Database.load as the entry point.
     private_class_method :new
@@ -124,6 +130,17 @@ module Dbox
     def delete_entry_by_path(path)
       raise(ArgumentError, "path cannot be null") unless path
       delete_entry("WHERE path=?", path)
+    end
+
+    def migrate_entry_from_old_db_format(entry, parent = nil)
+      # insert entry into sqlite db
+      add_entry(entry.path, entry.dir?, (parent ? parent[:id] : nil), entry.modified_at, entry.revision, nil)
+
+      # recur on children
+      if entry.dir?
+        new_parent = find_by_path(entry.path)
+        entry.contents.each {|child_path, child| migrate_entry_from_old_db_format(child, new_parent) }
+      end
     end
 
     private

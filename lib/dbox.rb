@@ -25,33 +25,39 @@ module Dbox
   def self.create(remote_path, local_path)
     remote_path = clean_remote_path(remote_path)
     local_path = clean_local_path(local_path)
+    migrate_dbfile(local_path)
     Dbox::Syncer.create(remote_path, local_path)
   end
 
   def self.clone(remote_path, local_path)
     remote_path = clean_remote_path(remote_path)
     local_path = clean_local_path(local_path)
+    migrate_dbfile(local_path)
     Dbox::Syncer.clone(remote_path, local_path)
   end
 
   def self.pull(local_path)
     local_path = clean_local_path(local_path)
+    migrate_dbfile(local_path)
     Dbox::Syncer.pull(local_path)
   end
 
   def self.push(local_path)
     local_path = clean_local_path(local_path)
+    migrate_dbfile(local_path)
     Dbox::Syncer.push(local_path)
   end
 
   def self.move(new_remote_path, local_path)
     new_remote_path = clean_remote_path(new_remote_path)
     local_path = clean_local_path(local_path)
+    migrate_dbfile(local_path)
     Dbox::Syncer.move(new_remote_path, local_path)
   end
 
   def self.exists?(local_path)
     local_path = clean_local_path(local_path)
+    migrate_dbfile(local_path)
     Dbox::Database.exists?(local_path)
   end
 
@@ -66,5 +72,14 @@ module Dbox
   def self.clean_local_path(path)
     raise(ArgumentError, "Missing local path") unless path
     File.expand_path(path)
+  end
+
+  def self.migrate_dbfile(path)
+    if Dbox::DB.exists?(path)
+      log.warn "Old database file format found -- migrating to new database format"
+      Dbox::Database.migrate_from_old_db_format(Dbox::DB.load(path))
+      Dbox::DB.destroy!(path)
+      log.warn "Migration complete"
+    end
   end
 end

@@ -1,6 +1,5 @@
 Now (SQLite):
 * Migration from old DB format
-* Indexes
 * Prepared statements
 
 Soon:

@@ -39,7 +39,6 @@ module Dbox
     end
 
     def ensure_schema_exists
-      # TODO run performance tests with and without the indexes on DBs with 10,000s of records
       @db.execute_batch(%{
         CREATE TABLE IF NOT EXISTS metadata (
           id           integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -56,7 +55,6 @@ module Dbox
           modified     datetime,
           revision     integer
         );
-        CREATE INDEX IF NOT EXISTS entry_paths ON entries(path);
         CREATE INDEX IF NOT EXISTS entry_parent_ids ON entries(parent_id);
       })
     end

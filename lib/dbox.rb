@@ -52,7 +52,7 @@ module Dbox
 
   def self.exists?(local_path)
     local_path = clean_local_path(local_path)
-    Dbox::Syncer.exists?(local_path)
+    Dbox::Database.exists?(local_path)
   end
 
   private

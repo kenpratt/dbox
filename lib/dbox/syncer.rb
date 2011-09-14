@@ -28,10 +28,6 @@ module Dbox
       database.update_metadata(:remote_path => new_remote_path)
     end
 
-    def self.exists?(local_path)
-      Database.exists?(local_path)
-    end
-
     def self.api
       @@_api ||= API.connect
     end

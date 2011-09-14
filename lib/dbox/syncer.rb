@@ -175,19 +175,6 @@ module Dbox
         out[:revision] = res[:revision] if res[:revision]
         out
       end
-
-      def prioritize_operations(ops)
-        ops.sort {|x,y| priority(x[0]) <=> priority(y[0]) }
-      end
-
-      def priority(operation)
-        case operation
-        when :create then 1
-        when :delete then 2
-        when :update then 3
-        else 4
-        end
-      end
     end
 
     class Pull < Operation
@@ -291,7 +278,7 @@ module Dbox
           out += calculate_changes(dir, operation)
         end
 
-        prioritize_operations(out)
+        out
       end
 
       def modified?(entry, res)
@@ -450,7 +437,7 @@ module Dbox
           out += calculate_changes(dir)
         end
 
-        prioritize_operations(out)
+        out
       end
 
       def mtime(path)

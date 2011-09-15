@@ -15,6 +15,7 @@ require "dbox/loggable"
 require "dbox/api"
 require "dbox/database"
 require "dbox/db"
+require "dbox/parallel_tasks"
 require "dbox/syncer"
 
 module Dbox

@@ -1,5 +1,7 @@
 module Dbox
   class Syncer
+    MAX_PARALLEL_DBOX_OPS = 5
+
     include Loggable
 
     def self.create(remote_path, local_path)
@@ -359,24 +361,36 @@ module Dbox
         changes = calculate_changes(dir)
         log.debug "executing changes:\n" + changes.map {|c| c.inspect }.join("\n")
         changelist = { :created => [], :deleted => [], :updated => [] }
+        ptasks = ParallelTasks.new(MAX_PARALLEL_DBOX_OPS - 1)
+        ptasks.start
+
         changes.each do |op, c|
           case op
           when :create
             c[:parent_id] ||= lookup_id_by_path(c[:parent_path])
 
-            # do server operation
             if c[:is_dir]
+              database.add_entry(c[:path], true, c[:parent_id], nil, nil, nil)
+
+              # directory creation cannot go in a thread, since later
+              # operations might depend on the directory being there
               create_dir(c)
+              force_metadata_update_from_server(c)
+              changelist[:created] << c[:path]
             else
-              upload_file(c)
+              database.add_entry(c[:path], false, c[:parent_id], nil, nil, nil)
+
+              # spin up a thread to upload the file
+              ptasks.add do
+                begin
+                  upload_file(c)
+                  force_metadata_update_from_server(c)
+                  changelist[:created] << c[:path]
+                rescue Dbox::ServerError => e
+                  log.error "Error while uploading #{c[:path]}: #{e.inspect}"
+                end
+              end
             end
-
-            # grab metadata from server & add entry to DB
-            res = gather_remote_info(c)
-            database.add_entry(c[:path], c[:is_dir], c[:parent_id], res[:modified], res[:revision], res[:hash])
-            update_file_timestamp(database.find_by_path(c[:path]))
-
-            changelist[:created] << c[:path]
           when :update
             existing = database.find_by_path(c[:path])
             unless existing[:is_dir] == c[:is_dir]
@@ -385,22 +399,46 @@ module Dbox
 
             # only update files -- nothing to do to update a dir
             if !c[:is_dir]
-              upload_file(c)
-              force_metadata_update_from_server(c)
-              changelist[:updated] << c[:path]
+
+              # spin up a thread to upload the file
+              ptasks.add do
+                begin
+                  upload_file(c)
+                  force_metadata_update_from_server(c)
+                  changelist[:updated] << c[:path]
+                rescue Dbox::ServerError => e
+                  log.error "Error while uploading #{c[:path]}: #{e.inspect}"
+                end
+              end
             end
           when :delete
-            if c[:is_dir]
-              delete_dir(c)
-            else
-              delete_file(c)
+            # spin up a thread to delete the file/dir
+            ptasks.add do
+              begin
+                begin
+                  if c[:is_dir]
+                    delete_dir(c)
+                  else
+                    delete_file(c)
+                  end
+                rescue Dbox::RemoteMissing
+                  # safe to delete even if remote is already gone
+                end
+                database.delete_entry_by_path(c[:path])
+                changelist[:deleted] << c[:path]
+              rescue Dbox::ServerError
+                log.error "Error while deleting #{c[:path]}: #{e.inspect}"
+              end
             end
-            database.delete_entry_by_path(c[:path])
-            changelist[:deleted] << c[:path]
           else
             raise(RuntimeError, "Unknown operation type: #{op}")
           end
         end
+
+        # wait for operations to finish
+        ptasks.finish
+
+        # sort & return output
         changelist.keys.each {|k| changelist[k].sort! }
         changelist
       end
@@ -473,13 +511,11 @@ module Dbox
 
       def delete_dir(dir)
         remote_path = relative_to_remote_path(dir[:path])
-        log.info "Deleting #{remote_path}"
         api.delete_dir(remote_path)
       end
 
       def delete_file(file)
         remote_path = relative_to_remote_path(file[:path])
-        log.info "Deleting #{remote_path}"
         api.delete_file(remote_path)
       end
 

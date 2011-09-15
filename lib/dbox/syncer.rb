@@ -270,10 +270,11 @@ module Dbox
           end
         end
 
-        # recursively process new & existing subdirectories
-        recur_dirs.each do |operation, dir|
-          out += calculate_changes(dir, operation)
+        # recursively process new & existing subdirectories in parallel
+        threads = recur_dirs.map do |operation, dir|
+          Thread.new { Thread.current[:out] = calculate_changes(dir, operation) }
         end
+        threads.each {|t| t.join; out += t[:out] }
 
         out
       end

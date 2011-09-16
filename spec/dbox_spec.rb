@@ -272,4 +272,32 @@ describe Dbox do
       Dbox.exists?(@local).should be_false
     end
   end
+
+  describe "misc" do
+    it "should be able to recreate a dir after deleting it" do
+      Dbox.create(@remote, @local)
+
+      @alternate = "#{ALTERNATE_LOCAL_TEST_PATH}/#{@name}"
+      Dbox.clone(@remote, @alternate)
+
+      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [])
+
+      mkdir "#{@local}/subdir"
+      touch "#{@local}/subdir/one.txt"
+      Dbox.push(@local).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => [], :updated => [])
+
+      Dbox.pull(@alternate).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => [], :updated => [""])
+
+      rm_rf "#{@alternate}/subdir"
+      Dbox.push(@alternate).should eql(:created => [], :deleted => ["subdir"], :updated => [])
+
+      Dbox.pull(@local).should eql(:created => [], :deleted => ["subdir"], :updated => [""])
+
+      mkdir "#{@local}/subdir"
+      touch "#{@local}/subdir/one.txt"
+      Dbox.push(@local).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => [], :updated => [])
+
+      Dbox.pull(@alternate).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => [], :updated => [""])
+    end
+  end
 end

@@ -1,3 +1,5 @@
+Forked from Ruby client at https://www.dropbox.com/developers/releases
+
 Getting started with the Dropbox ruby library:
 1. Make sure you have rake and rubygems installed on your system.
 1b. Some of the gems below may need to be compiled locally, so make sure you

@@ -4,7 +4,7 @@ require "thread"
 # Usage:
 #
 #  puts "Creating task queue with 5 concurrent workers"
-#  tasks = ParallelTasks.new(5)
+#  tasks = ParallelTasks.new(5) { puts "Worker thread starting up" }
 #
 #  puts "Starting workers"
 #  tasks.start
@@ -24,8 +24,9 @@ require "thread"
 #  puts "Done"
 #
 class ParallelTasks
-  def initialize(num_workers)
+  def initialize(num_workers, &initialization_proc)
     @num_workers = num_workers
+    @initialization_proc = initialization_proc
     @workers = []
     @work_queue = Queue.new
     @semaphore = Mutex.new
@@ -35,6 +36,7 @@ class ParallelTasks
   def start
     @num_workers.times do
       @workers << Thread.new do
+        @initialization_proc.call if @initialization_proc
         done = false
         while !done
           task = nil

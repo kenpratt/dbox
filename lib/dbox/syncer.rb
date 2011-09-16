@@ -372,7 +372,7 @@ module Dbox
         changes = calculate_changes(dir)
         log.debug "executing changes:\n" + changes.map {|c| c.inspect }.join("\n")
         changelist = { :created => [], :deleted => [], :updated => [] }
-        ptasks = ParallelTasks.new(MAX_PARALLEL_DBOX_OPS - 1)
+        ptasks = ParallelTasks.new(MAX_PARALLEL_DBOX_OPS - 1) { clone_api_into_current_thread() }
         ptasks.start
 
         changes.each do |op, c|

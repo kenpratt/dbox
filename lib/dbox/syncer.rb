@@ -182,6 +182,19 @@ module Dbox
         out[:revision] = res[:revision] if res[:revision]
         out
       end
+
+      def generate_tmpfilename(path)
+        out = File.join(local_path, ".#{path.gsub(/\W/, '-')}.part")
+        if File.exists?(out)
+          generate_tmpfilename("path#{rand(1000)}")
+        else
+          out
+        end
+      end
+
+      def remove_tmpfiles
+        Dir["#{local_path}/.*.part"].each {|f| FileUtils.rm(f) }
+      end
     end
 
     class Pull < Operation
@@ -196,6 +209,7 @@ module Dbox
       end
 
       def execute
+        remove_tmpfiles
         dir = database.root_dir
         changes = calculate_changes(dir)
         log.debug "executing changes:\n" + changes.map {|c| c.inspect }.join("\n")
@@ -381,10 +395,12 @@ module Dbox
         local_path = relative_to_local_path(file[:path])
         remote_path = relative_to_remote_path(file[:path])
 
-        # TODO save to dotfile, then atomic move over
-        File.open(local_path, "w") do |f|
+        # stream download to temp file, then atomic move to real path
+        tmp = generate_tmpfilename(file[:path])
+        File.open(tmp, "w") do |f|
           api.get_file(remote_path, f)
         end
+        FileUtils.mv(tmp, local_path)
 
         update_file_timestamp(file)
       end

@@ -163,6 +163,7 @@ module Dbox
     end
 
     def insert_entry(fields)
+      log.debug "Inserting entry: #{fields.inspect}"
       h = fields.clone
       h[:modified]  = h[:modified].to_i if h[:modified]
       h[:is_dir] = (h[:is_dir] ? 1 : 0) unless h[:is_dir].nil?
@@ -173,6 +174,7 @@ module Dbox
     end
 
     def update_entry(where_clause, fields)
+      log.debug "Updating entry: #{where_clause}, #{fields.inspect}"
       h = fields.clone
       h[:modified]  = h[:modified].to_i if h[:modified]
       conditions, *args = *where_clause

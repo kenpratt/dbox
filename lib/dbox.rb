@@ -24,6 +24,7 @@ module Dbox
   end
 
   def self.create(remote_path, local_path)
+    log.debug "Creating (remote: #{remote_path}, local: #{local_path})"
     remote_path = clean_remote_path(remote_path)
     local_path = clean_local_path(local_path)
     migrate_dbfile(local_path)
@@ -31,6 +32,7 @@ module Dbox
   end
 
   def self.clone(remote_path, local_path)
+    log.debug "Cloning (remote: #{remote_path}, local: #{local_path})"
     remote_path = clean_remote_path(remote_path)
     local_path = clean_local_path(local_path)
     migrate_dbfile(local_path)
@@ -38,18 +40,21 @@ module Dbox
   end
 
   def self.pull(local_path)
+    log.debug "Pulling (local: #{local_path})"
     local_path = clean_local_path(local_path)
     migrate_dbfile(local_path)
     Dbox::Syncer.pull(local_path)
   end
 
   def self.push(local_path)
+    log.debug "Pushing (local: #{local_path})"
     local_path = clean_local_path(local_path)
     migrate_dbfile(local_path)
     Dbox::Syncer.push(local_path)
   end
 
   def self.move(new_remote_path, local_path)
+    log.debug "Moving (new remote: #{new_remote_path}, local: #{local_path})"
     new_remote_path = clean_remote_path(new_remote_path)
     local_path = clean_local_path(local_path)
     migrate_dbfile(local_path)

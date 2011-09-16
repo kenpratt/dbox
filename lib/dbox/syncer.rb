@@ -205,14 +205,14 @@ module Dbox
       def practice
         dir = database.root_dir
         changes = calculate_changes(dir)
-        log.debug "changes that would be executed:\n" + changes.map {|c| c.inspect }.join("\n")
+        log.debug "Changes that would be executed:\n" + changes.map {|c| c.inspect }.join("\n")
       end
 
       def execute
         remove_tmpfiles
         dir = database.root_dir
         changes = calculate_changes(dir)
-        log.debug "executing changes:\n" + changes.map {|c| c.inspect }.join("\n")
+        log.debug "Executing changes:\n" + changes.map {|c| c.inspect }.join("\n")
         changelist = { :created => [], :deleted => [], :updated => [] }
 
         # spin up a parallel task queue
@@ -346,9 +346,7 @@ module Dbox
         out = (entry[:revision] != res[:revision]) ||
               (time_to_s(entry[:modified]) != time_to_s(res[:modified]))
         out ||= (entry[:hash] != res[:hash]) if res.has_key?(:hash)
-
-        log.debug "#{entry[:path]}: r#{entry[:revision]} vs. r#{res[:revision]}, h#{entry[:hash]} vs. h#{res[:hash]}, t#{time_to_s(entry[:modified])} vs. t#{time_to_s(res[:modified])} => #{out}"
-        log.debug "#{entry[:path]} modified? => #{out}"
+        log.debug "#{entry[:path]} modified? r#{entry[:revision]} vs. r#{res[:revision]}, h#{entry[:hash]} vs. h#{res[:hash]}, t#{time_to_s(entry[:modified])} vs. t#{time_to_s(res[:modified])} => #{out}"
         out
       end
 
@@ -414,13 +412,13 @@ module Dbox
       def practice
         dir = database.root_dir
         changes = calculate_changes(dir)
-        log.debug "changes that would be executed:\n" + changes.map {|c| c.inspect }.join("\n")
+        log.debug "Changes that would be executed:\n" + changes.map {|c| c.inspect }.join("\n")
       end
 
       def execute
         dir = database.root_dir
         changes = calculate_changes(dir)
-        log.debug "executing changes:\n" + changes.map {|c| c.inspect }.join("\n")
+        log.debug "Executing changes:\n" + changes.map {|c| c.inspect }.join("\n")
         changelist = { :created => [], :deleted => [], :updated => [] }
 
         # spin up a parallel task queue
@@ -514,7 +512,6 @@ module Dbox
 
         existing_entries = current_dir_entries_as_hash(dir)
         child_paths = list_contents(dir).sort
-        log.debug "child paths: #{child_paths.inspect}"
 
         child_paths.each do |p|
           c = { :path => p, :modified => mtime(p), :is_dir => is_dir(p), :parent_path => dir[:path] }
@@ -551,18 +548,14 @@ module Dbox
       end
 
       def modified?(entry, res)
-        log.debug "entry: #{entry.inspect}"
-        log.debug "res: #{res.inspect}"
         out = time_to_s(entry[:modified]) != time_to_s(res[:modified])
-        log.debug "#{entry[:path]}: t#{time_to_s(entry[:modified])} vs. t#{time_to_s(res[:modified])} => #{out}"
-        log.debug "#{entry[:path]} modified? => #{out}"
+        log.debug "#{entry[:path]} modified? t#{time_to_s(entry[:modified])} vs. t#{time_to_s(res[:modified])} => #{out}"
         out
       end
 
       def list_contents(dir)
         local_path = relative_to_local_path(dir[:path])
         paths = Dir.entries(local_path).reject {|s| s == "." || s == ".." || s.start_with?(".") }
-        log.debug "paths for #{dir[:path]} = #{paths.inspect}"
         paths.map {|p| local_to_relative_path(File.join(local_path, p)) }
       end
 

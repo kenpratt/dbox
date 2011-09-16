@@ -381,11 +381,9 @@ module Dbox
         local_path = relative_to_local_path(file[:path])
         remote_path = relative_to_remote_path(file[:path])
 
-        # TODO stream to disk
         # TODO save to dotfile, then atomic move over
-        res = api.get_file(remote_path)
         File.open(local_path, "w") do |f|
-          f << res
+          api.get_file(remote_path, f)
         end
 
         update_file_timestamp(file)

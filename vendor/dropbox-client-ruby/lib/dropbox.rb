@@ -148,10 +148,36 @@ class DropboxClient
         end
     end
 
-    def get_file(root, from_path)
+    def get_file(root, from_path, destination_io=nil)
         path = "/files/#{root}#{from_path}"
-        response = @token.get(build_url(@content_host, @port, path))
-        return parse_response(response, callback=true)
+
+        if destination_io
+            url = URI.parse(build_url(@content_host, @port, path))
+
+            # if a destination is given, stream the response into it
+            Net::HTTP.start(url.host, url.port) do |http|
+                # build the request
+                req = Net::HTTP::Get.new(url.path, {})
+                auth = @auth.clone(@content_host)
+                auth.sign(req)
+
+                # make the request
+                http.request(req) do |response|
+                    if response.kind_of?(Net::HTTPServerError)
+                        raise DropboxError.new("Invalid response #{response}\n#{response.body}")
+                    elsif not response.kind_of?(Net::HTTPSuccess)
+                        return response
+                    else
+                        # stream to given io
+                        response.read_body {|segment| destination_io << segment }
+                        return true
+                    end
+                end
+            end
+        else
+            response = @token.get(build_url(@content_host, @port, path))
+            return parse_response(response, true)
+        end
     end
 
     def file_copy(root, from_path, to_path, callback=nil)

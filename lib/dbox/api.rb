@@ -67,6 +67,8 @@ module Dbox
           raise RequestDenied, "Operation on #{path} denied"
         when Net::HTTPNotModified
           :not_modified
+        when true
+          true
         else
           raise RuntimeError, "Unexpected result: #{res.inspect}"
         end
@@ -104,10 +106,10 @@ module Dbox
       end
     end
 
-    def get_file(path)
+    def get_file(path, output_file_obj)
       log.info "Downloading #{path}"
       run(path) do
-        @client.get_file(@conf["root"], escape_path(path))
+        @client.get_file(@conf["root"], escape_path(path), output_file_obj)
       end
     end
 

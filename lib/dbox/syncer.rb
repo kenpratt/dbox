@@ -200,17 +200,48 @@ module Dbox
         changes = calculate_changes(dir)
         log.debug "executing changes:\n" + changes.map {|c| c.inspect }.join("\n")
         changelist = { :created => [], :deleted => [], :updated => [] }
+
+        # spin up a parallel task queue
+        ptasks = ParallelTasks.new(MAX_PARALLEL_DBOX_OPS - 1) { clone_api_into_current_thread() }
+        ptasks.start
+
         changes.each do |op, c|
           case op
           when :create
-            c[:is_dir] ? create_dir(c) : create_file(c)
             c[:parent_id] ||= lookup_id_by_path(c[:parent_path])
-            database.add_entry(c[:path], c[:is_dir], c[:parent_id], c[:modified], c[:revision], c[:hash])
-            changelist[:created] << c[:path]
+            if c[:is_dir]
+              # directory creation cannot go in a thread, since later
+              # operations might depend on the directory being there
+              create_dir(c)
+              database.add_entry(c[:path], true, c[:parent_id], c[:modified], c[:revision], c[:hash])
+              changelist[:created] << c[:path]
+            else
+              ptasks.add do
+                begin
+                  create_file(c)
+                  database.add_entry(c[:path], false, c[:parent_id], c[:modified], c[:revision], c[:hash])
+                  changelist[:created] << c[:path]
+                rescue Dbox::ServerError => e
+                  log.error "Error while downloading #{c[:path]}: #{e.inspect}"
+                end
+              end
+            end
           when :update
-            c[:is_dir] ? update_dir(c) : update_file(c)
-            database.update_entry_by_path(c[:path], :modified => c[:modified], :revision => c[:revision], :hash => c[:hash])
-            changelist[:updated] << c[:path]
+            if c[:is_dir]
+              update_dir(c)
+              database.update_entry_by_path(c[:path], :modified => c[:modified], :revision => c[:revision], :hash => c[:hash])
+              changelist[:updated] << c[:path]
+            else
+              ptasks.add do
+                begin
+                  update_file(c)
+                  database.update_entry_by_path(c[:path], :modified => c[:modified], :revision => c[:revision], :hash => c[:hash])
+                  changelist[:updated] << c[:path]
+                rescue Dbox::ServerError => e
+                  log.error "Error while downloading #{c[:path]}: #{e.inspect}"
+                end
+              end
+            end
           when :delete
             c[:is_dir] ? delete_dir(c) : delete_file(c)
             database.delete_entry_by_path(c[:path])
@@ -219,6 +250,11 @@ module Dbox
             raise(RuntimeError, "Unknown operation type: #{op}")
           end
         end
+
+        # wait for operations to finish
+        ptasks.finish
+
+        # sort & return output
         changelist.keys.each {|k| changelist[k].sort! }
         changelist
       end
@@ -372,6 +408,8 @@ module Dbox
         changes = calculate_changes(dir)
         log.debug "executing changes:\n" + changes.map {|c| c.inspect }.join("\n")
         changelist = { :created => [], :deleted => [], :updated => [] }
+
+        # spin up a parallel task queue
         ptasks = ParallelTasks.new(MAX_PARALLEL_DBOX_OPS - 1) { clone_api_into_current_thread() }
         ptasks.start
 

@@ -1,5 +1,5 @@
 Soon:
-* Parallelize uploads and downloads with threads (and possible parallelize fetching metadata on pull change detection too?)
+* Refactor threading in change detection in pull to use ParallelTasks?
 * Stream file to disk instead of downloading into memory
 * Saving SQLite db changes dir timestamp -- try to preserve it?
 

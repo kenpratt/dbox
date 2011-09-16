@@ -38,11 +38,19 @@ module Dbox
     class Operation
       include Loggable
 
-      attr_reader :database, :api
+      attr_reader :database
 
       def initialize(database, api)
         @database = database
         @api = api
+      end
+
+      def api
+        Thread.current[:api] || @api
+      end
+
+      def clone_api_into_current_thread
+        Thread.current[:api] = api.clone()
       end
 
       def metadata
@@ -274,7 +282,10 @@ module Dbox
 
         # recursively process new & existing subdirectories in parallel
         threads = recur_dirs.map do |operation, dir|
-          Thread.new { Thread.current[:out] = calculate_changes(dir, operation) }
+          Thread.new do
+            clone_api_into_current_thread()
+            Thread.current[:out] = calculate_changes(dir, operation)
+          end
         end
         threads.each {|t| t.join; out += t[:out] }
 

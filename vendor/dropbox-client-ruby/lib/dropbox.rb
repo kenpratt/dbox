@@ -85,6 +85,7 @@ class DropboxError < RuntimeError
 end
 
 class DropboxClient
+    attr_reader :token
 
     def initialize(api_host, content_host, port, auth)
         @api_host = api_host
@@ -92,6 +93,12 @@ class DropboxClient
         @port = port.to_i
         @auth = auth
         @token = auth.get_access_token
+    end
+
+    def initialize_copy(other)
+        @token = other.token.clone()
+        @token.consumer = @token.consumer.clone()
+        @token.consumer.http = nil
     end
 
     def parse_response(response, callback=nil)

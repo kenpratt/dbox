@@ -30,10 +30,16 @@ module Dbox
       api
     end
 
+    attr_reader :client
+
     # IMPORTANT: API.new is private. Please use API.authorize or API.connect as the entry point.
     private_class_method :new
     def initialize
       @conf = self.class.conf
+    end
+
+    def initialize_copy(other)
+      @client = other.client.clone()
     end
 
     def connect

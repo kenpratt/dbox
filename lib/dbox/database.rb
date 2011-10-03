@@ -72,8 +72,17 @@ module Dbox
     def migrate
       if metadata[:version] < 2
         @db.execute_batch(%{
-          ALTER TABLE metadata DROP COLUMN local_path;
-          UPDATE_TABLE metadata SET version = 2;
+          BEGIN TRANSACTION;
+          ALTER TABLE metadata RENAME TO metadata_old;
+          CREATE TABLE metadata (
+            id           integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+            remote_path  varchar(255) NOT NULL,
+            version      integer NOT NULL
+          );
+          INSERT INTO metadata SELECT id, remote_path, version FROM metadata_old;
+          DROP TABLE metadata_old;
+          UPDATE metadata SET version = 2;
+          COMMIT;
         })
       end
     end

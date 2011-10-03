@@ -143,8 +143,17 @@ module Dbox
     end
 
     def delete_entry_by_path(path)
-      raise(ArgumentError, "path cannot be null") unless path
-      delete_entry("WHERE path=?", path)
+      delete_entry_by_entry(find_by_path(path))
+    end
+
+    def delete_entry_by_entry(entry)
+      raise(ArgumentError, "entry cannot be null") unless entry
+
+      # cascade delete children, if any
+      contents(entry[:id]).each {|child| delete_entry_by_entry(child) }
+
+      # delete main entry
+      delete_entry("WHERE id=?", entry[:id])
     end
 
     def migrate_entry_from_old_db_format(entry, parent = nil)

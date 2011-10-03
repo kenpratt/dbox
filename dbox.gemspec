@@ -5,14 +5,15 @@
 
 Gem::Specification.new do |s|
   s.name = %q{dbox}
-  s.version = "0.5.0"
+  s.version = "0.5.1"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
-  s.authors = [%q{Ken Pratt}]
-  s.date = %q{2011-09-19}
+  s.authors = ["Ken Pratt"]
+  s.date = %q{2011-10-03}
+  s.default_executable = %q{dbox}
   s.description = %q{An easy-to-use Dropbox client with fine-grained control over syncs.}
   s.email = %q{ken@kenpratt.net}
-  s.executables = [%q{dbox}]
+  s.executables = ["dbox"]
   s.extra_rdoc_files = [
     "LICENSE.txt",
     "README.md"
@@ -47,12 +48,13 @@ Gem::Specification.new do |s|
     "vendor/dropbox-client-ruby/test/util.rb"
   ]
   s.homepage = %q{http://github.com/kenpratt/dbox}
-  s.licenses = [%q{MIT}]
-  s.require_paths = [%q{lib}]
-  s.rubygems_version = %q{1.8.5}
+  s.licenses = ["MIT"]
+  s.require_paths = ["lib"]
+  s.rubygems_version = %q{1.3.7}
   s.summary = %q{Dropbox made easy.}
 
   if s.respond_to? :specification_version then
+    current_version = Gem::Specification::CURRENT_SPECIFICATION_VERSION
     s.specification_version = 3
 
     if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then

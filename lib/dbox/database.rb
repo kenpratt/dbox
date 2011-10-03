@@ -11,7 +11,8 @@ module Dbox
       if db.bootstrapped?
         raise DatabaseError, "Database already initialized -- please use 'dbox pull' or 'dbox push'."
       end
-      db.bootstrap(remote_path, local_path)
+      db.bootstrap(remote_path)
+      db.migrate()
       db
     end
 
@@ -20,6 +21,7 @@ module Dbox
       unless db.bootstrapped?
         raise DatabaseError, "Database not initialized -- please run 'dbox create' or 'dbox clone'."
       end
+      db.migrate()
       db
     end
 
@@ -33,10 +35,13 @@ module Dbox
       new_db.migrate_entry_from_old_db_format(old_db.root)
     end
 
+    attr_reader :local_path
+
     # IMPORTANT: Database.new is private. Please use Database.create
     # or Database.load as the entry point.
     private_class_method :new
     def initialize(local_path)
+      @local_path = local_path
       FileUtils.mkdir_p(local_path)
       @db = SQLite3::Database.new(File.join(local_path, DB_FILENAME))
       @db.trace {|sql| log.debug sql.strip }
@@ -48,7 +53,6 @@ module Dbox
       @db.execute_batch(%{
         CREATE TABLE IF NOT EXISTS metadata (
           id           integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-          local_path   varchar(255) NOT NULL,
           remote_path  varchar(255) NOT NULL,
           version      integer NOT NULL
         );
@@ -65,13 +69,22 @@ module Dbox
       })
     end
 
-    METADATA_COLS = [ :local_path, :remote_path, :version ] # don't need to return id
+    def migrate
+      if metadata[:version] < 2
+        @db.execute_batch(%{
+          ALTER TABLE metadata DROP COLUMN local_path;
+          UPDATE_TABLE metadata SET version = 2;
+        })
+      end
+    end
+
+    METADATA_COLS = [ :remote_path, :version ] # don't need to return id
     ENTRY_COLS    = [ :id, :path, :is_dir, :parent_id, :hash, :modified, :revision ]
 
-    def bootstrap(remote_path, local_path)
+    def bootstrap(remote_path)
       @db.execute(%{
-        INSERT INTO metadata (local_path, remote_path, version) VALUES (?, ?, ?);
-      }, local_path, remote_path, 1)
+        INSERT INTO metadata (remote_path, version) VALUES (?, ?);
+      }, remote_path, 2)
       @db.execute(%{
         INSERT INTO entries (path, is_dir) VALUES (?, ?)
       }, "", 1)
@@ -89,7 +102,9 @@ module Dbox
       res = @db.get_first_row(%{
         SELECT #{cols.join(',')} FROM metadata LIMIT 1;
       })
-      make_fields(cols, res) if res
+      out = { :local_path => local_path }
+      out.merge!(make_fields(cols, res)) if res
+      out
     end
 
     def update_metadata(fields)

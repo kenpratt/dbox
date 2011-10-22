@@ -396,7 +396,7 @@ module Dbox
         # stream download to temp file, then atomic move to real path
         tmp = generate_tmpfilename(file[:path])
         File.open(tmp, "w") do |f|
-          api.get_file(remote_path, f)
+          f <<  api.get_file(remote_path)
         end
         FileUtils.mv(tmp, local_path)
 
@@ -579,7 +579,7 @@ module Dbox
         local_path = relative_to_local_path(file[:path])
         remote_path = relative_to_remote_path(file[:path])
         File.open(local_path) do |f|
-          api.put_file(remote_path, f)
+          api.put_file(remote_path, f, false, file[:rev])
         end
       end
 

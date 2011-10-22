@@ -1,0 +1,29 @@
+1.1 (2011-10-17)
+* Various bug fixes found during beta period
+* Improved documentation
+* Improved module structure
+* Removed dependency on the oauth module, using plaintext authentication over https
+
+1.0 (2011-8-16)
+* Backwards compatibility broken
+   - Changed interface
+   - Change 'sandbox' references to 'app_folder'
+* Updated SDK to Dropbox API Version 1, supporting all calls
+   - Added 'rev' parameter to metadata and get_file
+   - Added 'parent_rev' parameter to put_file
+   - Added search, share, media, revisions, and restore
+   - put_file uses /files_put instead of multipart POST
+   - Removed methods for calls that were removed from v1 of the REST API
+* Changed return format for calls
+   - On error (non-200 response), an exception is raised
+   - On success, the JSON is parsed and a Hash is returned
+* Updated examples
+   - Improved CLI example
+   - Added a Ruby on Rails 3 controller example
+   - Added a web based file browser/uploader that uses Sinatra
+* put_file no longer takes a "name" arugment, only takes a full path
+* Removed reliance on config files
+* Assorted bugfixes and improvements
+* All calls are now made over SSL
+* Fully documented code for RDoc generation
+* Added a CHANGELOG

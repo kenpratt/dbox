@@ -4,15 +4,15 @@
 # -*- encoding: utf-8 -*-
 
 Gem::Specification.new do |s|
-  s.name = "dbox"
+  s.name = %q{dbox}
   s.version = "0.5.2"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
-  s.authors = ["Ken Pratt"]
-  s.date = "2011-10-03"
-  s.description = "An easy-to-use Dropbox client with fine-grained control over syncs."
-  s.email = "ken@kenpratt.net"
-  s.executables = ["dbox"]
+  s.authors = [%q{Ken Pratt}]
+  s.date = %q{2011-10-22}
+  s.description = %q{An easy-to-use Dropbox client with fine-grained control over syncs.}
+  s.email = %q{ken@kenpratt.net}
+  s.executables = [%q{dbox}]
   s.extra_rdoc_files = [
     "LICENSE.txt",
     "README.md"
@@ -36,21 +36,20 @@ Gem::Specification.new do |s|
     "sample_polling_script.rb",
     "spec/dbox_spec.rb",
     "spec/spec_helper.rb",
-    "vendor/dropbox-client-ruby/LICENSE",
-    "vendor/dropbox-client-ruby/README",
-    "vendor/dropbox-client-ruby/Rakefile",
-    "vendor/dropbox-client-ruby/config/testing.json.example",
-    "vendor/dropbox-client-ruby/lib/dropbox.rb",
-    "vendor/dropbox-client-ruby/manifest",
-    "vendor/dropbox-client-ruby/test/authenticator_test.rb",
-    "vendor/dropbox-client-ruby/test/client_test.rb",
-    "vendor/dropbox-client-ruby/test/util.rb"
+    "vendor/dropbox-ruby-sdk-1.1/CHANGELOG",
+    "vendor/dropbox-ruby-sdk-1.1/LICENSE",
+    "vendor/dropbox-ruby-sdk-1.1/README",
+    "vendor/dropbox-ruby-sdk-1.1/cli_example.rb",
+    "vendor/dropbox-ruby-sdk-1.1/dropbox_controller.rb",
+    "vendor/dropbox-ruby-sdk-1.1/gemspec.rb",
+    "vendor/dropbox-ruby-sdk-1.1/lib/dropbox_sdk.rb",
+    "vendor/dropbox-ruby-sdk-1.1/web_file_browser.rb"
   ]
-  s.homepage = "http://github.com/kenpratt/dbox"
-  s.licenses = ["MIT"]
-  s.require_paths = ["lib"]
-  s.rubygems_version = "1.8.10"
-  s.summary = "Dropbox made easy."
+  s.homepage = %q{http://github.com/kenpratt/dbox}
+  s.licenses = [%q{MIT}]
+  s.require_paths = [%q{lib}]
+  s.rubygems_version = %q{1.8.5}
+  s.summary = %q{Dropbox made easy.}
 
   if s.respond_to? :specification_version then
     s.specification_version = 3

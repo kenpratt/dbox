@@ -77,7 +77,7 @@ describe Dbox do
 
       @alternate = "#{ALTERNATE_LOCAL_TEST_PATH}/#{@name}"
       Dbox.clone(@remote, @alternate)
-      touch "#{@alternate}/hello.txt"
+      make_file "#{@alternate}/hello.txt"
       Dbox.push(@alternate).should eql(:created => ["hello.txt"], :deleted => [], :updated => [])
 
       Dbox.pull(@local).should eql(:created => ["hello.txt"], :deleted => [], :updated => [""])
@@ -86,7 +86,7 @@ describe Dbox do
 
     it "should be able to pull after deleting a file and not have the file re-created" do
       Dbox.create(@remote, @local)
-      touch "#{@local}/hello.txt"
+      make_file "#{@local}/hello.txt"
       Dbox.push(@local).should eql(:created => ["hello.txt"], :deleted => [], :updated => [])
       rm "#{@local}/hello.txt"
       Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [""])
@@ -101,9 +101,9 @@ describe Dbox do
 
       Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [])
 
-      touch "#{@alternate}/foo.txt"
-      touch "#{@alternate}/bar.txt"
-      touch "#{@alternate}/baz.txt"
+      make_file "#{@alternate}/foo.txt"
+      make_file "#{@alternate}/bar.txt"
+      make_file "#{@alternate}/baz.txt"
       Dbox.push(@alternate).should eql(:created => ["bar.txt", "baz.txt", "foo.txt"], :deleted => [], :updated => [])
       Dbox.pull(@alternate).should eql(:created => [], :deleted => [], :updated => [""])
       Dbox.pull(@alternate).should eql(:created => [], :deleted => [], :updated => [])
@@ -112,9 +112,9 @@ describe Dbox do
       Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [])
 
       mkdir "#{@alternate}/subdir"
-      touch "#{@alternate}/subdir/one.txt"
+      make_file "#{@alternate}/subdir/one.txt"
       rm "#{@alternate}/foo.txt"
-      File.open("#{@alternate}/baz.txt", "w") {|f| f << "baaz" }
+      make_file "#{@alternate}/baz.txt"
       Dbox.push(@alternate).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => ["foo.txt"], :updated => ["baz.txt"])
       Dbox.pull(@alternate).should eql(:created => [], :deleted => [], :updated => ["", "subdir"])
       Dbox.pull(@alternate).should eql(:created => [], :deleted => [], :updated => [])
@@ -136,7 +136,7 @@ describe Dbox do
 
     it "should be able to push a new file" do
       Dbox.create(@remote, @local)
-      touch "#{@local}/foo.txt"
+      make_file "#{@local}/foo.txt"
       Dbox.push(@local).should eql(:created => ["foo.txt"], :deleted => [], :updated => [])
     end
 
@@ -149,7 +149,7 @@ describe Dbox do
     it "should be able to push a new dir with a file in it" do
       Dbox.create(@remote, @local)
       mkdir "#{@local}/subdir"
-      touch "#{@local}/subdir/foo.txt"
+      make_file "#{@local}/subdir/foo.txt"
       Dbox.push(@local).should eql(:created => ["subdir", "subdir/foo.txt"], :deleted => [], :updated => [])
     end
 
@@ -157,13 +157,13 @@ describe Dbox do
       Dbox.create(@remote, @local)
       mkdir "#{@local}/subdir"
       Dbox.push(@local)
-      touch "#{@local}/subdir/foo.txt"
+      make_file "#{@local}/subdir/foo.txt"
       Dbox.push(@local).should eql(:created => ["subdir/foo.txt"], :deleted => [], :updated => [])
     end
 
     it "should create the remote dir if it is missing" do
       Dbox.create(@remote, @local)
-      touch "#{@local}/foo.txt"
+      make_file "#{@local}/foo.txt"
       @new_name = randname()
       @new_remote = File.join(REMOTE_TEST_PATH, @new_name)
       db = Dbox::Database.load(@local)
@@ -173,16 +173,16 @@ describe Dbox do
 
     it "should not re-download the file after creating" do
       Dbox.create(@remote, @local)
-      touch "#{@local}/foo.txt"
+      make_file "#{@local}/foo.txt"
       Dbox.push(@local).should eql(:created => ["foo.txt"], :deleted => [], :updated => [])
       Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [""])
     end
 
     it "should not re-download the file after updating" do
       Dbox.create(@remote, @local)
-      touch "#{@local}/foo.txt"
+      make_file "#{@local}/foo.txt"
       Dbox.push(@local).should eql(:created => ["foo.txt"], :deleted => [], :updated => [])
-      File.open("#{@local}/foo.txt", "w") {|f| f << "fooz" }
+      make_file "#{@local}/foo.txt"
       Dbox.push(@local).should eql(:created => [], :deleted => [], :updated => ["foo.txt"])
       Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [""])
     end
@@ -196,14 +196,14 @@ describe Dbox do
 
     it "should handle a complex set of changes" do
       Dbox.create(@remote, @local)
-      touch "#{@local}/foo.txt"
-      touch "#{@local}/bar.txt"
-      touch "#{@local}/baz.txt"
+      make_file "#{@local}/foo.txt"
+      make_file "#{@local}/bar.txt"
+      make_file "#{@local}/baz.txt"
       Dbox.push(@local).should eql(:created => ["bar.txt", "baz.txt", "foo.txt"], :deleted => [], :updated => [])
       mkdir "#{@local}/subdir"
-      touch "#{@local}/subdir/one.txt"
+      make_file "#{@local}/subdir/one.txt"
       rm "#{@local}/foo.txt"
-      touch "#{@local}/baz.txt"
+      make_file "#{@local}/baz.txt"
       Dbox.push(@local).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => ["foo.txt"], :updated => ["baz.txt"])
       Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => ["", "subdir"])
     end
@@ -212,8 +212,8 @@ describe Dbox do
       Dbox.create(@remote, @local)
       crazy_name1 = '=+!@#  $%^&*()[]{}<>_-|:?,\'~".txt'
       crazy_name2 = '[ˈdɔʏtʃ].txt'
-      touch "#{@local}/#{crazy_name1}"
-      touch "#{@local}/#{crazy_name2}"
+      make_file "#{@local}/#{crazy_name1}"
+      make_file "#{@local}/#{crazy_name2}"
       Dbox.push(@local).should eql(:created => [crazy_name1, crazy_name2], :deleted => [], :updated => [])
       rm_rf @local
       Dbox.clone(@remote, @local).should eql(:created => [crazy_name1, crazy_name2], :deleted => [], :updated => [""])
@@ -223,7 +223,7 @@ describe Dbox do
       Dbox.create(@remote, @local)
       crazy_name1 = "Day[J] #42"
       mkdir File.join(@local, crazy_name1)
-      touch File.join(@local, crazy_name1, "foo.txt")
+      make_file File.join(@local, crazy_name1, "foo.txt")
       Dbox.push(@local).should eql(:created => [crazy_name1, File.join(crazy_name1, "foo.txt")], :deleted => [], :updated => [])
       rm_rf @local
       Dbox.clone(@remote, @local).should eql(:created => [crazy_name1, File.join(crazy_name1, "foo.txt")], :deleted => [], :updated => [""])
@@ -283,7 +283,7 @@ describe Dbox do
       Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [])
 
       mkdir "#{@local}/subdir"
-      touch "#{@local}/subdir/one.txt"
+      make_file "#{@local}/subdir/one.txt"
       Dbox.push(@local).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => [], :updated => [])
 
       Dbox.pull(@alternate).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => [], :updated => [""])
@@ -294,7 +294,7 @@ describe Dbox do
       Dbox.pull(@local).should eql(:created => [], :deleted => ["subdir"], :updated => [""])
 
       mkdir "#{@local}/subdir"
-      touch "#{@local}/subdir/one.txt"
+      make_file "#{@local}/subdir/one.txt"
       Dbox.push(@local).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => [], :updated => [])
 
       Dbox.pull(@alternate).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => [], :updated => [""])

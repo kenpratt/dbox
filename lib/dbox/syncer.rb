@@ -487,7 +487,7 @@ module Dbox
                 end
                 database.delete_entry_by_path(c[:path])
                 changelist[:deleted] << c[:path]
-              rescue Dbox::ServerError
+              rescue Dbox::ServerError => e
                 log.error "Error while deleting #{c[:path]}: #{e.inspect}"
               end
             end

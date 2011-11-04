@@ -213,6 +213,7 @@ module Dbox
         dir = database.root_dir
         changes = calculate_changes(dir)
         log.debug "Executing changes:\n" + changes.map {|c| c.inspect }.join("\n")
+        parent_ids_of_failed_entries = []
         changelist = { :created => [], :deleted => [], :updated => [] }
 
         # spin up a parallel task queue
@@ -237,6 +238,7 @@ module Dbox
                   changelist[:created] << c[:path]
                 rescue Dbox::ServerError => e
                   log.error "Error while downloading #{c[:path]}: #{e.inspect}"
+                  parent_ids_of_failed_entries << c[:parent_id]
                 end
               end
             end
@@ -253,6 +255,7 @@ module Dbox
                   changelist[:updated] << c[:path]
                 rescue Dbox::ServerError => e
                   log.error "Error while downloading #{c[:path]}: #{e.inspect}"
+                  parent_ids_of_failed_entries << c[:parent_id]
                 end
               end
             end
@@ -267,6 +270,12 @@ module Dbox
 
         # wait for operations to finish
         ptasks.finish
+
+        # clear hashes on any dirs with children that failed so that
+        # they are processed again on next pull
+        parent_ids_of_failed_entries.uniq.each do |id|
+          database.update_entry_by_id(id, :hash => nil)
+        end
 
         # sort & return output
         changelist.keys.each {|k| changelist[k].sort! }

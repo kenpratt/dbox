@@ -182,6 +182,7 @@ describe Dbox do
       Dbox.create(@remote, @local)
       make_file "#{@local}/foo.txt"
       Dbox.push(@local).should eql(:created => ["foo.txt"], :deleted => [], :updated => [])
+      sleep 1 # need to wait for timestamp to change before writing same file
       make_file "#{@local}/foo.txt"
       Dbox.push(@local).should eql(:created => [], :deleted => [], :updated => ["foo.txt"])
       Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [""])
@@ -200,6 +201,7 @@ describe Dbox do
       make_file "#{@local}/bar.txt"
       make_file "#{@local}/baz.txt"
       Dbox.push(@local).should eql(:created => ["bar.txt", "baz.txt", "foo.txt"], :deleted => [], :updated => [])
+      sleep 1 # need to wait for timestamp to change before writing same file
       mkdir "#{@local}/subdir"
       make_file "#{@local}/subdir/one.txt"
       rm "#{@local}/foo.txt"
@@ -293,6 +295,7 @@ describe Dbox do
 
       Dbox.pull(@local).should eql(:created => [], :deleted => ["subdir"], :updated => [""])
 
+      sleep 1 # need to wait for timestamp to change before writing same file
       mkdir "#{@local}/subdir"
       make_file "#{@local}/subdir/one.txt"
       Dbox.push(@local).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => [], :updated => [])

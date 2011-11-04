@@ -214,7 +214,7 @@ module Dbox
         changes = calculate_changes(dir)
         log.debug "Executing changes:\n" + changes.map {|c| c.inspect }.join("\n")
         parent_ids_of_failed_entries = []
-        changelist = { :created => [], :deleted => [], :updated => [] }
+        changelist = { :created => [], :deleted => [], :updated => [], :failed => [] }
 
         # spin up a parallel task queue
         ptasks = ParallelTasks.new(MAX_PARALLEL_DBOX_OPS - 1) { clone_api_into_current_thread() }
@@ -239,6 +239,7 @@ module Dbox
                 rescue Dbox::ServerError => e
                   log.error "Error while downloading #{c[:path]}: #{e.inspect}"
                   parent_ids_of_failed_entries << c[:parent_id]
+                  changelist[:failed] << { :operation => :create, :path => c[:path], :error => e }
                 end
               end
             end
@@ -256,6 +257,7 @@ module Dbox
                 rescue Dbox::ServerError => e
                   log.error "Error while downloading #{c[:path]}: #{e.inspect}"
                   parent_ids_of_failed_entries << c[:parent_id]
+                  changelist[:failed] << { :operation => :create, :path => c[:path], :error => e }
                 end
               end
             end
@@ -428,7 +430,7 @@ module Dbox
         dir = database.root_dir
         changes = calculate_changes(dir)
         log.debug "Executing changes:\n" + changes.map {|c| c.inspect }.join("\n")
-        changelist = { :created => [], :deleted => [], :updated => [] }
+        changelist = { :created => [], :deleted => [], :updated => [], :failed => [] }
 
         # spin up a parallel task queue
         ptasks = ParallelTasks.new(MAX_PARALLEL_DBOX_OPS - 1) { clone_api_into_current_thread() }
@@ -456,6 +458,7 @@ module Dbox
                   changelist[:created] << c[:path]
                 rescue Dbox::ServerError => e
                   log.error "Error while uploading #{c[:path]}: #{e.inspect}"
+                  changelist[:failed] << { :operation => :create, :path => c[:path], :error => e }
                 end
               end
             end
@@ -476,6 +479,7 @@ module Dbox
                   changelist[:updated] << c[:path]
                 rescue Dbox::ServerError => e
                   log.error "Error while uploading #{c[:path]}: #{e.inspect}"
+                  changelist[:failed] << { :operation => :update, :path => c[:path], :error => e }
                 end
               end
             end
@@ -496,6 +500,7 @@ module Dbox
                 changelist[:deleted] << c[:path]
               rescue Dbox::ServerError => e
                 log.error "Error while deleting #{c[:path]}: #{e.inspect}"
+                changelist[:failed] << { :operation => :delete, :path => c[:path], :error => e }
               end
             end
           else

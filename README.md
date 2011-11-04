@@ -146,10 +146,10 @@ Oh, Hello
 Using dbox from Ruby
 --------------------
 
-The Ruby clone, pull, and push APIs return a hash listing the changes made during that pull/push.
+The Ruby clone, pull, and push APIs return a hash listing the changes made during that pull/push. If any failures were encountered while uploading or downloading from Dropbox, they will be shown in the ```:failed``` entry in the hash. Often, trying your operation again will resolve the failures as the Dropbox API returns errors for valid operations on occasion.
 
 ```ruby
-{ :created => ["foo.txt"], :deleted => [], :updated => [] }
+{ :created => ["foo.txt"], :deleted => [], :updated => [], :failed => [] }
 ```
 
 ### Usage

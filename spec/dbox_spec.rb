@@ -22,12 +22,12 @@ describe Dbox do
 
   describe "#create" do
     it "creates the local directory" do
-      Dbox.create(@remote, @local).should eql(:created => [], :deleted => [], :updated => [""])
+      Dbox.create(@remote, @local).should eql(:created => [], :deleted => [], :updated => [""], :failed => [])
       @local.should exist
     end
 
     it "creates the remote directory" do
-      Dbox.create(@remote, @local).should eql(:created => [], :deleted => [], :updated => [""])
+      Dbox.create(@remote, @local).should eql(:created => [], :deleted => [], :updated => [""], :failed => [])
       ensure_remote_exists(@remote)
     end
 
@@ -44,7 +44,7 @@ describe Dbox do
       Dbox.create(@remote, @local)
       rm_rf @local
       @local.should_not exist
-      Dbox.clone(@remote, @local).should eql(:created => [], :deleted => [], :updated => [""])
+      Dbox.clone(@remote, @local).should eql(:created => [], :deleted => [], :updated => [""], :failed => [])
       @local.should exist
     end
 
@@ -68,7 +68,7 @@ describe Dbox do
 
     it "should be able to pull" do
       Dbox.create(@remote, @local)
-      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [])
+      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [], :failed => [])
     end
 
     it "should be able to pull changes" do
@@ -78,18 +78,18 @@ describe Dbox do
       @alternate = "#{ALTERNATE_LOCAL_TEST_PATH}/#{@name}"
       Dbox.clone(@remote, @alternate)
       make_file "#{@alternate}/hello.txt"
-      Dbox.push(@alternate).should eql(:created => ["hello.txt"], :deleted => [], :updated => [])
+      Dbox.push(@alternate).should eql(:created => ["hello.txt"], :deleted => [], :updated => [], :failed => [])
 
-      Dbox.pull(@local).should eql(:created => ["hello.txt"], :deleted => [], :updated => [""])
+      Dbox.pull(@local).should eql(:created => ["hello.txt"], :deleted => [], :updated => [""], :failed => [])
       "#{@local}/hello.txt".should exist
     end
 
     it "should be able to pull after deleting a file and not have the file re-created" do
       Dbox.create(@remote, @local)
       make_file "#{@local}/hello.txt"
-      Dbox.push(@local).should eql(:created => ["hello.txt"], :deleted => [], :updated => [])
+      Dbox.push(@local).should eql(:created => ["hello.txt"], :deleted => [], :updated => [], :failed => [])
       rm "#{@local}/hello.txt"
-      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [""])
+      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [""], :failed => [])
       "#{@local}/hello.txt".should_not exist
     end
 
@@ -99,28 +99,28 @@ describe Dbox do
       @alternate = "#{ALTERNATE_LOCAL_TEST_PATH}/#{@name}"
       Dbox.clone(@remote, @alternate)
 
-      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [])
+      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [], :failed => [])
 
       make_file "#{@alternate}/foo.txt"
       make_file "#{@alternate}/bar.txt"
       make_file "#{@alternate}/baz.txt"
-      Dbox.push(@alternate).should eql(:created => ["bar.txt", "baz.txt", "foo.txt"], :deleted => [], :updated => [])
-      Dbox.pull(@alternate).should eql(:created => [], :deleted => [], :updated => [""])
-      Dbox.pull(@alternate).should eql(:created => [], :deleted => [], :updated => [])
+      Dbox.push(@alternate).should eql(:created => ["bar.txt", "baz.txt", "foo.txt"], :deleted => [], :updated => [], :failed => [])
+      Dbox.pull(@alternate).should eql(:created => [], :deleted => [], :updated => [""], :failed => [])
+      Dbox.pull(@alternate).should eql(:created => [], :deleted => [], :updated => [], :failed => [])
 
-      Dbox.pull(@local).should eql(:created => ["bar.txt", "baz.txt", "foo.txt"], :deleted => [], :updated => [""])
-      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [])
+      Dbox.pull(@local).should eql(:created => ["bar.txt", "baz.txt", "foo.txt"], :deleted => [], :updated => [""], :failed => [])
+      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [], :failed => [])
 
       mkdir "#{@alternate}/subdir"
       make_file "#{@alternate}/subdir/one.txt"
       rm "#{@alternate}/foo.txt"
       make_file "#{@alternate}/baz.txt"
-      Dbox.push(@alternate).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => ["foo.txt"], :updated => ["baz.txt"])
-      Dbox.pull(@alternate).should eql(:created => [], :deleted => [], :updated => ["", "subdir"])
-      Dbox.pull(@alternate).should eql(:created => [], :deleted => [], :updated => [])
+      Dbox.push(@alternate).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => ["foo.txt"], :updated => ["baz.txt"], :failed => [])
+      Dbox.pull(@alternate).should eql(:created => [], :deleted => [], :updated => ["", "subdir"], :failed => [])
+      Dbox.pull(@alternate).should eql(:created => [], :deleted => [], :updated => [], :failed => [])
 
-      Dbox.pull(@local).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => ["foo.txt"], :updated => ["", "baz.txt"])
-      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [])
+      Dbox.pull(@local).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => ["foo.txt"], :updated => ["", "baz.txt"], :failed => [])
+      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [], :failed => [])
     end
   end
 
@@ -131,26 +131,26 @@ describe Dbox do
 
     it "should be able to push" do
       Dbox.create(@remote, @local)
-      Dbox.push(@local).should eql(:created => [], :deleted => [], :updated => [])
+      Dbox.push(@local).should eql(:created => [], :deleted => [], :updated => [], :failed => [])
     end
 
     it "should be able to push a new file" do
       Dbox.create(@remote, @local)
       make_file "#{@local}/foo.txt"
-      Dbox.push(@local).should eql(:created => ["foo.txt"], :deleted => [], :updated => [])
+      Dbox.push(@local).should eql(:created => ["foo.txt"], :deleted => [], :updated => [], :failed => [])
     end
 
     it "should be able to push a new dir" do
       Dbox.create(@remote, @local)
       mkdir "#{@local}/subdir"
-      Dbox.push(@local).should eql(:created => ["subdir"], :deleted => [], :updated => [])
+      Dbox.push(@local).should eql(:created => ["subdir"], :deleted => [], :updated => [], :failed => [])
     end
 
     it "should be able to push a new dir with a file in it" do
       Dbox.create(@remote, @local)
       mkdir "#{@local}/subdir"
       make_file "#{@local}/subdir/foo.txt"
-      Dbox.push(@local).should eql(:created => ["subdir", "subdir/foo.txt"], :deleted => [], :updated => [])
+      Dbox.push(@local).should eql(:created => ["subdir", "subdir/foo.txt"], :deleted => [], :updated => [], :failed => [])
     end
 
     it "should be able to push a new file in an existing dir" do
@@ -158,7 +158,7 @@ describe Dbox do
       mkdir "#{@local}/subdir"
       Dbox.push(@local)
       make_file "#{@local}/subdir/foo.txt"
-      Dbox.push(@local).should eql(:created => ["subdir/foo.txt"], :deleted => [], :updated => [])
+      Dbox.push(@local).should eql(:created => ["subdir/foo.txt"], :deleted => [], :updated => [], :failed => [])
     end
 
     it "should create the remote dir if it is missing" do
@@ -168,31 +168,31 @@ describe Dbox do
       @new_remote = File.join(REMOTE_TEST_PATH, @new_name)
       db = Dbox::Database.load(@local)
       db.update_metadata(:remote_path => @new_remote)
-      Dbox.push(@local).should eql(:created => ["foo.txt"], :deleted => [], :updated => [])
+      Dbox.push(@local).should eql(:created => ["foo.txt"], :deleted => [], :updated => [], :failed => [])
     end
 
     it "should not re-download the file after creating" do
       Dbox.create(@remote, @local)
       make_file "#{@local}/foo.txt"
-      Dbox.push(@local).should eql(:created => ["foo.txt"], :deleted => [], :updated => [])
-      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [""])
+      Dbox.push(@local).should eql(:created => ["foo.txt"], :deleted => [], :updated => [], :failed => [])
+      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [""], :failed => [])
     end
 
     it "should not re-download the file after updating" do
       Dbox.create(@remote, @local)
       make_file "#{@local}/foo.txt"
-      Dbox.push(@local).should eql(:created => ["foo.txt"], :deleted => [], :updated => [])
+      Dbox.push(@local).should eql(:created => ["foo.txt"], :deleted => [], :updated => [], :failed => [])
       sleep 1 # need to wait for timestamp to change before writing same file
       make_file "#{@local}/foo.txt"
-      Dbox.push(@local).should eql(:created => [], :deleted => [], :updated => ["foo.txt"])
-      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [""])
+      Dbox.push(@local).should eql(:created => [], :deleted => [], :updated => ["foo.txt"], :failed => [])
+      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [""], :failed => [])
     end
 
     it "should not re-download the dir after creating" do
       Dbox.create(@remote, @local)
       mkdir "#{@local}/subdir"
-      Dbox.push(@local).should eql(:created => ["subdir"], :deleted => [], :updated => [])
-      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [""])
+      Dbox.push(@local).should eql(:created => ["subdir"], :deleted => [], :updated => [], :failed => [])
+      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [""], :failed => [])
     end
 
     it "should handle a complex set of changes" do
@@ -200,14 +200,14 @@ describe Dbox do
       make_file "#{@local}/foo.txt"
       make_file "#{@local}/bar.txt"
       make_file "#{@local}/baz.txt"
-      Dbox.push(@local).should eql(:created => ["bar.txt", "baz.txt", "foo.txt"], :deleted => [], :updated => [])
+      Dbox.push(@local).should eql(:created => ["bar.txt", "baz.txt", "foo.txt"], :deleted => [], :updated => [], :failed => [])
       sleep 1 # need to wait for timestamp to change before writing same file
       mkdir "#{@local}/subdir"
       make_file "#{@local}/subdir/one.txt"
       rm "#{@local}/foo.txt"
       make_file "#{@local}/baz.txt"
-      Dbox.push(@local).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => ["foo.txt"], :updated => ["baz.txt"])
-      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => ["", "subdir"])
+      Dbox.push(@local).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => ["foo.txt"], :updated => ["baz.txt"], :failed => [])
+      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => ["", "subdir"], :failed => [])
     end
 
     it "should be able to handle crazy filenames" do
@@ -216,9 +216,9 @@ describe Dbox do
       crazy_name2 = '[ˈdɔʏtʃ].txt'
       make_file "#{@local}/#{crazy_name1}"
       make_file "#{@local}/#{crazy_name2}"
-      Dbox.push(@local).should eql(:created => [crazy_name1, crazy_name2], :deleted => [], :updated => [])
+      Dbox.push(@local).should eql(:created => [crazy_name1, crazy_name2], :deleted => [], :updated => [], :failed => [])
       rm_rf @local
-      Dbox.clone(@remote, @local).should eql(:created => [crazy_name1, crazy_name2], :deleted => [], :updated => [""])
+      Dbox.clone(@remote, @local).should eql(:created => [crazy_name1, crazy_name2], :deleted => [], :updated => [""], :failed => [])
     end
 
     it "should be able to handle crazy directory names" do
@@ -226,9 +226,9 @@ describe Dbox do
       crazy_name1 = "Day[J] #42"
       mkdir File.join(@local, crazy_name1)
       make_file File.join(@local, crazy_name1, "foo.txt")
-      Dbox.push(@local).should eql(:created => [crazy_name1, File.join(crazy_name1, "foo.txt")], :deleted => [], :updated => [])
+      Dbox.push(@local).should eql(:created => [crazy_name1, File.join(crazy_name1, "foo.txt")], :deleted => [], :updated => [], :failed => [])
       rm_rf @local
-      Dbox.clone(@remote, @local).should eql(:created => [crazy_name1, File.join(crazy_name1, "foo.txt")], :deleted => [], :updated => [""])
+      Dbox.clone(@remote, @local).should eql(:created => [crazy_name1, File.join(crazy_name1, "foo.txt")], :deleted => [], :updated => [""], :failed => [])
     end
   end
 
@@ -282,25 +282,25 @@ describe Dbox do
       @alternate = "#{ALTERNATE_LOCAL_TEST_PATH}/#{@name}"
       Dbox.clone(@remote, @alternate)
 
-      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [])
+      Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [], :failed => [])
 
       mkdir "#{@local}/subdir"
       make_file "#{@local}/subdir/one.txt"
-      Dbox.push(@local).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => [], :updated => [])
+      Dbox.push(@local).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => [], :updated => [], :failed => [])
 
-      Dbox.pull(@alternate).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => [], :updated => [""])
+      Dbox.pull(@alternate).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => [], :updated => [""], :failed => [])
 
       rm_rf "#{@alternate}/subdir"
-      Dbox.push(@alternate).should eql(:created => [], :deleted => ["subdir"], :updated => [])
+      Dbox.push(@alternate).should eql(:created => [], :deleted => ["subdir"], :updated => [], :failed => [])
 
-      Dbox.pull(@local).should eql(:created => [], :deleted => ["subdir"], :updated => [""])
+      Dbox.pull(@local).should eql(:created => [], :deleted => ["subdir"], :updated => [""], :failed => [])
 
       sleep 1 # need to wait for timestamp to change before writing same file
       mkdir "#{@local}/subdir"
       make_file "#{@local}/subdir/one.txt"
-      Dbox.push(@local).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => [], :updated => [])
+      Dbox.push(@local).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => [], :updated => [], :failed => [])
 
-      Dbox.pull(@alternate).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => [], :updated => [""])
+      Dbox.pull(@alternate).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => [], :updated => [""], :failed => [])
     end
   end
 end

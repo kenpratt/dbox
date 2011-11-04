@@ -431,20 +431,18 @@ module Dbox
             c[:parent_id] ||= lookup_id_by_path(c[:parent_path])
 
             if c[:is_dir]
-              database.add_entry(c[:path], true, c[:parent_id], nil, nil, nil)
-
               # directory creation cannot go in a thread, since later
               # operations might depend on the directory being there
               create_dir(c)
+              database.add_entry(c[:path], true, c[:parent_id], nil, nil, nil)
               force_metadata_update_from_server(c)
               changelist[:created] << c[:path]
             else
-              database.add_entry(c[:path], false, c[:parent_id], nil, nil, nil)
-
               # spin up a thread to upload the file
               ptasks.add do
                 begin
                   upload_file(c)
+                  database.add_entry(c[:path], false, c[:parent_id], nil, nil, nil)
                   force_metadata_update_from_server(c)
                   changelist[:created] << c[:path]
                 rescue Dbox::ServerError => e

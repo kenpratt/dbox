@@ -146,6 +146,11 @@ module Dbox
       insert_entry(:path => path, :is_dir => is_dir, :parent_id => parent_id, :modified => modified, :revision => revision, :hash => hash)
     end
 
+    def update_entry_by_id(id, fields)
+      raise(ArgumentError, "id cannot be null") unless id
+      update_entry(["WHERE id=?", id], fields)
+    end
+
     def update_entry_by_path(path, fields)
       raise(ArgumentError, "path cannot be null") unless path
       update_entry(["WHERE path=?", path], fields)

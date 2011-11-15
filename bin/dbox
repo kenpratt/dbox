@@ -51,12 +51,14 @@ when "create", "clone"
   # the same name of the directory being created/cloned
   local_path = args[1] || remote_path.split("/").last
 
-  Dbox.send(command, remote_path, local_path)
+  res = Dbox.send(command, remote_path, local_path)
+  exit 1 if res[:failed].size > 0
 when "pull", "push"
   # default to current directory
   local_path = args[0] || "."
 
-  Dbox.send(command, local_path)
+  res = Dbox.send(command, local_path)
+  exit 1 if res[:failed].size > 0
 when "move"
   remote_path = args[0]
 

@@ -36,6 +36,10 @@ def log
   LOGGER
 end
 
+def make_file(filepath)
+  File.open(filepath, "w") {|f| f << randname }
+end
+
 RSpec::Matchers.define :exist do
   match do |actual|
     File.exists?(actual) == true

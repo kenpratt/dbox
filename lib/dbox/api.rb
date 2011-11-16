@@ -65,27 +65,32 @@ module Dbox
     def run(path)
       begin
         res = yield
-        case res
-        when Hash
-          HashWithIndifferentAccess.new(res)
-        when String
-          res
-        when Net::HTTPNotFound
-          raise RemoteMissing, "#{path} does not exist on Dropbox"
-        when Net::HTTPForbidden
-          raise RequestDenied, "Operation on #{path} denied"
-        when Net::HTTPNotModified
-          :not_modified
-        when true
-          true
-        else
-          raise RuntimeError, "Unexpected result: #{res.inspect}"
-        end
+        handle_response(path, res) { raise RuntimeError, "Unexpected result: #{res.inspect}" }
       rescue DropboxNotModified => e
         :not_modified
+      rescue DropboxAuthError => e
+        raise e
       rescue DropboxError => e
-        log.debug e.inspect
-        raise ServerError, "Server error -- might be a hiccup, please try your request again (#{e.message})"
+        handle_response(path, e.http_response) { raise ServerError, "Server error -- might be a hiccup, please try your request again (#{e.message})" }
+      end
+    end
+
+    def handle_response(path, res, &else_proc)
+      case res
+      when Hash
+        HashWithIndifferentAccess.new(res)
+      when String
+        res
+      when Net::HTTPNotFound
+        raise RemoteMissing, "#{path} does not exist on Dropbox"
+      when Net::HTTPForbidden
+        raise RequestDenied, "Operation on #{path} denied"
+      when Net::HTTPNotModified
+        :not_modified
+      when true
+        true
+      else
+        else_proc.call()
       end
     end
 
@@ -101,11 +106,14 @@ module Dbox
     def create_dir(path)
       log.info "Creating #{path}"
       run(path) do
-        case res = @client.file_create_folder(path)
-        when Net::HTTPForbidden
-          raise RemoteAlreadyExists, "Either the directory at #{path} already exists, or it has invalid characters in the name"
-        else
-          res
+        begin
+          @client.file_create_folder(path)
+        rescue DropboxError => e
+          if e.http_response.kind_of?(Net::HTTPForbidden)
+            raise RemoteAlreadyExists, "Either the directory at #{path} already exists, or it has invalid characters in the name"
+          else
+            raise e
+          end
         end
       end
     end
@@ -158,11 +166,14 @@ module Dbox
     def move(old_path, new_path)
       log.info "Moving #{old_path} to #{new_path}"
       run(old_path) do
-        case res = @client.file_move(old_path, new_path)
-        when Net::HTTPBadRequest
-          raise RemoteAlreadyExists, "Error during move -- there may already be a Dropbox folder at #{new_path}"
-        else
-          res
+        begin
+          @client.file_move(old_path, new_path)
+        rescue DropboxError => e
+          if e.http_response.kind_of?(Net::HTTPBadRequest)
+            raise RemoteAlreadyExists, "Error during move -- there may already be a Dropbox folder at #{new_path}"
+          else
+            raise e
+          end
         end
       end
     end

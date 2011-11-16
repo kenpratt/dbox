@@ -34,7 +34,7 @@ describe Dbox do
     it "should fail if the remote already exists" do
       Dbox.create(@remote, @local)
       rm_rf @local
-      expect { Dbox.create(@remote, @local) }.to raise_error(Dbox::ServerError)
+      expect { Dbox.create(@remote, @local) }.to raise_error(Dbox::RemoteAlreadyExists)
       @local.should_not exist
     end
   end
@@ -49,7 +49,7 @@ describe Dbox do
     end
 
     it "should fail if the remote does not exist" do
-      expect { Dbox.clone(@remote, @local) }.to raise_error(Dbox::ServerError)
+      expect { Dbox.clone(@remote, @local) }.to raise_error(Dbox::RemoteMissing)
       @local.should_not exist
     end
   end
@@ -63,7 +63,7 @@ describe Dbox do
       Dbox.create(@remote, @local)
       db = Dbox::Database.load(@local)
       db.update_metadata(:remote_path => "/" + randname())
-      expect { Dbox.pull(@local) }.to raise_error(Dbox::ServerError)
+      expect { Dbox.pull(@local) }.to raise_error(Dbox::RemoteMissing)
     end
 
     it "should be able to pull" do
@@ -254,7 +254,7 @@ describe Dbox do
     it "should not be able to move to a location that exists" do
       Dbox.create(@remote, @local)
       Dbox.create(@new_remote, @new_local)
-      expect { Dbox.move(@new_remote, @local) }.to raise_error(Dbox::ServerError)
+      expect { Dbox.move(@new_remote, @local) }.to raise_error(Dbox::RemoteAlreadyExists)
     end
   end
 

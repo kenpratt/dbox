@@ -117,10 +117,27 @@ module Dbox
       end
     end
 
-    def get_file(path)
+    def get_file(path, file_obj, stream=false)
       log.info "Downloading #{path}"
-      run(path) do
-        @client.get_file(path)
+      unless stream
+        # just download directly using the get_file API
+        res = run(path) { @client.get_file(path) }
+        if res.kind_of?(String)
+          file_obj << res
+          true
+        else
+          raise DropboxError.new("Invalid response #{res.inspect}")
+        end
+      else
+        # use the media API to get a URL that we can stream from, and
+        # then stream the file to disk
+        res = run(path) { @client.media(path) }
+        url = res[:url] if res && res.kind_of?(Hash)
+        if url
+          streaming_download(url, file_obj)
+        else
+          get_file(path, file_obj, false)
+        end
       end
     end
 
@@ -146,6 +163,25 @@ module Dbox
           raise RemoteAlreadyExists, "Error during move -- there may already be a Dropbox folder at #{new_path}"
         else
           res
+        end
+      end
+    end
+
+    def streaming_download(url, io)
+      url = URI.parse(url)
+      http = Net::HTTP.new(url.host, url.port)
+      http.use_ssl = true
+
+      req = Net::HTTP::Get.new(url.request_uri)
+      req["User-Agent"] = "OfficialDropboxRubySDK/#{Dropbox::SDK_VERSION}"
+
+      http.request(req) do |res|
+        if res.kind_of?(Net::HTTPSuccess)
+          # stream into given io
+          res.read_body {|chunk| io.write(chunk) }
+          true
+        else
+          raise DropboxError.new("Invalid response #{res}\n#{res.body}")
         end
       end
     end

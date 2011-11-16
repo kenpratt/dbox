@@ -1,6 +1,7 @@
 module Dbox
   class Syncer
     MAX_PARALLEL_DBOX_OPS = 5
+    MIN_BYTES_TO_STREAM_DOWNLOAD = 1024 * 100 # 100kB
 
     include Loggable
 
@@ -180,6 +181,7 @@ module Dbox
         out[:is_dir]   = res[:is_dir]
         out[:hash]     = res[:hash] if res[:hash]
         out[:revision] = res[:rev] if res[:rev]
+        out[:size]     = res[:bytes] if res[:bytes]
         out
       end
 
@@ -404,15 +406,20 @@ module Dbox
         local_path = relative_to_local_path(file[:path])
         remote_path = relative_to_remote_path(file[:path])
 
-        # stream download to temp file, then atomic move to real path
+        # stream files larger than the minimum
+        stream = file[:size] && file[:size] > MIN_BYTES_TO_STREAM_DOWNLOAD
+
+        # download to temp file
         tmp = generate_tmpfilename(file[:path])
         File.open(tmp, "w") do |f|
-          f <<  api.get_file(remote_path)
+          api.get_file(remote_path, f, stream)
         end
-        FileUtils.mv(tmp, local_path)
 
+        # atomic move over to the real file, and update the timestamp
+        FileUtils.mv(tmp, local_path)
         update_file_timestamp(file)
       end
+
     end
 
     class Push < Operation

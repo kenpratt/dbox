@@ -122,6 +122,25 @@ describe Dbox do
       Dbox.pull(@local).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => ["foo.txt"], :updated => ["", "baz.txt"], :failed => [])
       Dbox.pull(@local).should eql(:created => [], :deleted => [], :updated => [], :failed => [])
     end
+
+    it "should be able to download a bunch of files at the same time" do
+      Dbox.create(@remote, @local)
+      @alternate = "#{ALTERNATE_LOCAL_TEST_PATH}/#{@name}"
+      Dbox.clone(@remote, @alternate)
+
+      # generate 20 x 100kB files
+      20.times do
+        make_file "#{@alternate}/#{randname}.txt", 100
+      end
+
+      Dbox.push(@alternate)
+
+      res = Dbox.pull(@local)
+      res[:deleted].should eql([])
+      res[:updated].should eql([""])
+      res[:failed].should eql([])
+      res[:created].size.should eql(20)
+    end
   end
 
   describe "#push" do
@@ -229,6 +248,21 @@ describe Dbox do
       Dbox.push(@local).should eql(:created => [crazy_name1, File.join(crazy_name1, "foo.txt")], :deleted => [], :updated => [], :failed => [])
       rm_rf @local
       Dbox.clone(@remote, @local).should eql(:created => [crazy_name1, File.join(crazy_name1, "foo.txt")], :deleted => [], :updated => [""], :failed => [])
+    end
+
+    it "should be able to upload a bunch of files at the same time" do
+      Dbox.create(@remote, @local)
+
+      # generate 20 x 100kB files
+      20.times do
+        make_file "#{@local}/#{randname}.txt", 100
+      end
+
+      res = Dbox.push(@local)
+      res[:deleted].should eql([])
+      res[:updated].should eql([])
+      res[:failed].should eql([])
+      res[:created].size.should eql(20)
     end
   end
 

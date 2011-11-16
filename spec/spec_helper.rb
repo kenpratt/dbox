@@ -36,8 +36,8 @@ def log
   LOGGER
 end
 
-def make_file(filepath)
-  File.open(filepath, "w") {|f| f << randname }
+def make_file(filepath, size_in_kb=1)
+  `dd if=/dev/urandom of="#{filepath.gsub('"','\"')}" bs=1024 count=#{size_in_kb} 1>/dev/null 2>/dev/null`
 end
 
 RSpec::Matchers.define :exist do

@@ -591,7 +591,9 @@ module Dbox
         local_path = relative_to_local_path(file[:path])
         remote_path = relative_to_remote_path(file[:path])
         File.open(local_path) do |f|
-          api.put_file(remote_path, f, false, file[:rev])
+          db_entry = database.find_by_path(file[:path])
+          last_revision = db_entry ? db_entry[:revision] : nil
+          api.put_file(remote_path, f, last_revision)
         end
       end
 

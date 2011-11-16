@@ -124,10 +124,10 @@ module Dbox
       end
     end
 
-    def put_file(path, file_obj, overwrite, rev)
+    def put_file(path, file_obj, previous_revision=nil)
       log.info "Uploading #{path}"
       run(path) do
-        @client.put_file(path, file_obj, overwrite, rev)
+        @client.put_file(path, file_obj, false, previous_revision)
       end
     end
 

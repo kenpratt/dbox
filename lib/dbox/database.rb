@@ -63,14 +63,17 @@ module Dbox
           parent_id    integer REFERENCES entries(id) ON DELETE CASCADE,
           hash         varchar(255),
           modified     datetime,
-          revision     integer
+          revision     varchar(255)
         );
         CREATE INDEX IF NOT EXISTS entry_parent_ids ON entries(parent_id);
       })
     end
 
     def migrate
+      # removing local_path from metadata
       if metadata[:version] < 2
+        log.info "Migrating to database v2"
+
         @db.execute_batch(%{
           BEGIN TRANSACTION;
           ALTER TABLE metadata RENAME TO metadata_old;
@@ -85,6 +88,59 @@ module Dbox
           COMMIT;
         })
       end
+
+      # migrating to new Dropbox API 1.0 (from integer revisions to
+      # string revisions)
+      if metadata[:version] < 3
+        log.info "Migrating to database v3"
+
+        api = API.connect
+        remote_path = metadata[:remote_path]
+        new_revisions = {}
+
+        # fetch the new revision IDs from dropbox
+        find_entries().each do |entry|
+          path = (entry[:path] && entry[:path].length > 0) ? File.join(remote_path, entry[:path]) : remote_path
+          begin
+            data = api.metadata(path, nil, false)
+            # record nev revision ("rev") iff old revisions ("revision") match
+            if entry[:revision] == data["revision"]
+              new_revisions[entry[:id]] = data["rev"]
+            end
+          rescue Dbox::ServerError => e
+            log.error e
+          end
+        end
+
+        # modify the table to have a string for revision (blanked out
+        # for each entry)
+        @db.execute_batch(%{
+          BEGIN TRANSACTION;
+          ALTER TABLE entries RENAME TO entries_old;
+          CREATE TABLE IF NOT EXISTS entries (
+            id           integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+            path         varchar(255) UNIQUE NOT NULL,
+            is_dir       boolean NOT NULL,
+            parent_id    integer REFERENCES entries(id) ON DELETE CASCADE,
+            hash         varchar(255),
+            modified     datetime,
+            revision     varchar(255)
+          );
+          INSERT INTO entries SELECT id, path, is_dir, parent_id, hash, modified, null FROM entries_old;
+        })
+
+        # copy in the new revision IDs
+        new_revisions.each do |id, revision|
+          update_entry_by_id(id, :revision => revision)
+        end
+
+        # drop old table and commit
+        @db.execute_batch(%{
+          DROP TABLE entries_old;
+          UPDATE metadata SET version = 3;
+          COMMIT;
+        })
+      end
     end
 
     METADATA_COLS = [ :remote_path, :version ] # don't need to return id
@@ -93,7 +149,7 @@ module Dbox
     def bootstrap(remote_path)
       @db.execute(%{
         INSERT INTO metadata (remote_path, version) VALUES (?, ?);
-      }, remote_path, 2)
+      }, remote_path, 3)
       @db.execute(%{
         INSERT INTO entries (path, is_dir) VALUES (?, ?)
       }, "", 1)

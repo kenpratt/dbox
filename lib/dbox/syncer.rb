@@ -179,7 +179,7 @@ module Dbox
         out[:modified] = parse_time(res[:modified])
         out[:is_dir]   = res[:is_dir]
         out[:hash]     = res[:hash] if res[:hash]
-        out[:revision] = res[:revision] if res[:revision]
+        out[:revision] = res[:rev] if res[:rev]
         out
       end
 

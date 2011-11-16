@@ -81,16 +81,18 @@ module Dbox
         else
           raise RuntimeError, "Unexpected result: #{res.inspect}"
         end
+      rescue DropboxNotModified => e
+        :not_modified
       rescue DropboxError => e
         log.debug e.inspect
         raise ServerError, "Server error -- might be a hiccup, please try your request again (#{e.message})"
       end
     end
 
-    def metadata(path = "/", hash = nil)
+    def metadata(path = "/", hash = nil, list=true)
       log.debug "Fetching metadata for #{path}"
       run(path) do
-        res = @client.metadata(escape_path(path))
+        res = @client.metadata(path, 10000, list, hash)
         log.debug res.inspect
         res
       end
@@ -118,14 +120,14 @@ module Dbox
     def get_file(path)
       log.info "Downloading #{path}"
       run(path) do
-        @client.get_file(escape_path(path))
+        @client.get_file(path)
       end
     end
 
     def put_file(path, file_obj, overwrite, rev)
       log.info "Uploading #{path}"
       run(path) do
-        @client.put_file(escape_path(path), file_obj, overwrite, rev)
+        @client.put_file(path, file_obj, overwrite, rev)
       end
     end
 
@@ -146,10 +148,6 @@ module Dbox
           res
         end
       end
-    end
-
-    def escape_path(path)
-      path.split("/").map {|s| CGI.escape(s).gsub("+", "%20") }.join("/")
     end
   end
 end

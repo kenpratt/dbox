@@ -58,5 +58,15 @@ module Dbox
         remote_path
       end
     end
+
+    def calculate_hash(filepath)
+      begin
+        Digest::MD5.file(filepath).to_s
+      rescue Errno::EISDIR
+        nil
+      rescue Errno::ENOENT
+        nil
+      end
+    end
   end
 end

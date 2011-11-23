@@ -62,7 +62,8 @@ module Dbox
           path         varchar(255) UNIQUE NOT NULL,
           is_dir       boolean NOT NULL,
           parent_id    integer REFERENCES entries(id) ON DELETE CASCADE,
-          hash         varchar(255),
+          local_hash   varchar(255),
+          remote_hash  varchar(255),
           modified     datetime,
           revision     varchar(255)
         );
@@ -73,7 +74,7 @@ module Dbox
     def migrate
       # removing local_path from metadata
       if metadata[:version] < 2
-        log.info "Migrating to database v2"
+        log.info "Migrating to database schema v2"
 
         @db.execute_batch(%{
           BEGIN TRANSACTION;
@@ -93,7 +94,7 @@ module Dbox
       # migrating to new Dropbox API 1.0 (from integer revisions to
       # string revisions)
       if metadata[:version] < 3
-        log.info "Migrating to database v3"
+        log.info "Migrating to database schema v3"
 
         api = API.connect
         new_revisions = {}
@@ -117,7 +118,7 @@ module Dbox
         @db.execute_batch(%{
           BEGIN TRANSACTION;
           ALTER TABLE entries RENAME TO entries_old;
-          CREATE TABLE IF NOT EXISTS entries (
+          CREATE TABLE entries (
             id           integer PRIMARY KEY AUTOINCREMENT NOT NULL,
             path         varchar(255) UNIQUE NOT NULL,
             is_dir       boolean NOT NULL,
@@ -141,15 +142,53 @@ module Dbox
           COMMIT;
         })
       end
+
+      if metadata[:version] < 4
+        log.info "Migrating to database schema v4"
+
+        # add local_hash column, rename hash to remote_hash
+        @db.execute_batch(%{
+          BEGIN TRANSACTION;
+          ALTER TABLE entries RENAME TO entries_old;
+          CREATE TABLE entries (
+            id           integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+            path         varchar(255) UNIQUE NOT NULL,
+            is_dir       boolean NOT NULL,
+            parent_id    integer REFERENCES entries(id) ON DELETE CASCADE,
+            local_hash   varchar(255),
+            remote_hash  varchar(255),
+            modified     datetime,
+            revision     varchar(255)
+          );
+          INSERT INTO entries SELECT id, path, is_dir, parent_id, null, hash, modified, revision FROM entries_old;
+        })
+
+        # calculate hashes on files with same timestamp as we have (as that was the previous mechanism used to check freshness)
+        find_entries().each do |entry|
+          unless entry[:is_dir]
+            path = relative_to_local_path(entry[:path])
+            if times_equal?(File.mtime(path), entry[:modified])
+              update_entry_by_id(entry[:id], :local_hash => calculate_hash(path))
+            end
+          end
+        end
+
+        # drop old table and commit
+        @db.execute_batch(%{
+          DROP TABLE entries_old;
+          UPDATE metadata SET version = 4;
+          COMMIT;
+        })
+      end
     end
 
     METADATA_COLS = [ :remote_path, :version ] # don't need to return id
-    ENTRY_COLS    = [ :id, :path, :is_dir, :parent_id, :hash, :modified, :revision ]
+    ENTRY_COLS    = [ :id, :path, :is_dir, :parent_id, :local_hash, :remote_hash, :modified, :revision ]
 
     def bootstrap(remote_path)
       @db.execute(%{
         INSERT INTO metadata (remote_path, version) VALUES (?, ?);
-      }, remote_path, 3)
+      }, remote_path, 4)
       @db.execute(%{
         INSERT INTO entries (path, is_dir) VALUES (?, ?)
       }, "", 1)
@@ -202,8 +241,8 @@ module Dbox
       find_entries("WHERE parent_id=? AND is_dir=1", dir_id)
     end
 
-    def add_entry(path, is_dir, parent_id, modified, revision, hash)
-      insert_entry(:path => path, :is_dir => is_dir, :parent_id => parent_id, :modified => modified, :revision => revision, :hash => hash)
+    def add_entry(path, is_dir, parent_id, modified, revision, remote_hash, local_hash)
+      insert_entry(:path => path, :is_dir => is_dir, :parent_id => parent_id, :modified => modified, :revision => revision, :remote_hash => remote_hash, :local_hash => local_hash)
     end
 
     def update_entry_by_id(id, fields)
@@ -232,7 +271,7 @@ module Dbox
 
     def migrate_entry_from_old_db_format(entry, parent = nil)
       # insert entry into sqlite db
-      add_entry(entry.path, entry.dir?, (parent ? parent[:id] : nil), entry.modified_at, entry.revision, nil)
+      add_entry(entry.path, entry.dir?, (parent ? parent[:id] : nil), entry.modified_at, entry.revision, nil, nil)
 
       # recur on children
       if entry.dir?
@@ -293,7 +332,6 @@ module Dbox
         h = make_fields(ENTRY_COLS, res)
         h[:is_dir] = (h[:is_dir] == 1)
         h[:modified]  = Time.at(h[:modified]) if h[:modified]
-        h.delete(:hash) unless h[:is_dir]
         h
       else
         nil

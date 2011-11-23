@@ -103,7 +103,7 @@ module Dbox
       end
 
       def gather_remote_info(entry)
-        res = api.metadata(relative_to_remote_path(entry[:path]), entry[:hash])
+        res = api.metadata(relative_to_remote_path(entry[:path]), entry[:remote_hash])
         case res
         when Hash
           out = process_basic_remote_props(res)
@@ -126,12 +126,12 @@ module Dbox
 
       def process_basic_remote_props(res)
         out = {}
-        out[:path]     = remote_to_relative_path(res[:path])
-        out[:modified] = parse_time(res[:modified])
-        out[:is_dir]   = res[:is_dir]
-        out[:hash]     = res[:hash] if res[:hash]
-        out[:revision] = res[:rev] if res[:rev]
-        out[:size]     = res[:bytes] if res[:bytes]
+        out[:path]        = remote_to_relative_path(res[:path])
+        out[:modified]    = parse_time(res[:modified])
+        out[:is_dir]      = res[:is_dir]
+        out[:remote_hash] = res[:hash] if res[:hash]
+        out[:revision]    = res[:rev] if res[:rev]
+        out[:size]        = res[:bytes] if res[:bytes]
         out
       end
 
@@ -180,13 +180,14 @@ module Dbox
               # directory creation cannot go in a thread, since later
               # operations might depend on the directory being there
               create_dir(c)
-              database.add_entry(c[:path], true, c[:parent_id], c[:modified], c[:revision], c[:hash])
+              database.add_entry(c[:path], true, c[:parent_id], c[:modified], c[:revision], c[:remote_hash], nil)
               changelist[:created] << c[:path]
             else
               ptasks.add do
                 begin
                   create_file(c)
-                  database.add_entry(c[:path], false, c[:parent_id], c[:modified], c[:revision], c[:hash])
+                  local_hash = calculate_hash(relative_to_local_path(c[:path]))
+                  database.add_entry(c[:path], false, c[:parent_id], c[:modified], c[:revision], c[:remote_hash], local_hash)
                   changelist[:created] << c[:path]
                 rescue Dbox::ServerError => e
                   log.error "Error while downloading #{c[:path]}: #{e.inspect}"
@@ -198,13 +199,14 @@ module Dbox
           when :update
             if c[:is_dir]
               update_dir(c)
-              database.update_entry_by_path(c[:path], :modified => c[:modified], :revision => c[:revision], :hash => c[:hash])
+              database.update_entry_by_path(c[:path], :modified => c[:modified], :revision => c[:revision], :remote_hash => c[:remote_hash])
               changelist[:updated] << c[:path]
             else
               ptasks.add do
                 begin
                   update_file(c)
-                  database.update_entry_by_path(c[:path], :modified => c[:modified], :revision => c[:revision], :hash => c[:hash])
+                  local_hash = calculate_hash(relative_to_local_path(c[:path]))
+                  database.update_entry_by_path(c[:path], :modified => c[:modified], :revision => c[:revision], :remote_hash => c[:remote_hash], :local_hash => local_hash)
                   changelist[:updated] << c[:path]
                 rescue Dbox::ServerError => e
                   log.error "Error while downloading #{c[:path]}: #{e.inspect}"
@@ -228,7 +230,7 @@ module Dbox
         # clear hashes on any dirs with children that failed so that
         # they are processed again on next pull
         parent_ids_of_failed_entries.uniq.each do |id|
-          database.update_entry_by_id(id, :hash => nil)
+          database.update_entry_by_id(id, :remote_hash => nil)
         end
 
         # sort & return output
@@ -269,7 +271,7 @@ module Dbox
               c[:modified] = parse_time(c[:modified])
               if c[:is_dir]
                 # queue dir for later
-                c[:hash] = entry[:hash]
+                c[:remote_hash] = entry[:remote_hash]
                 recur_dirs << [:update, c]
               else
                 # update iff modified
@@ -308,8 +310,8 @@ module Dbox
       def modified?(entry, res)
         out = (entry[:revision] != res[:revision]) ||
               !times_equal?(entry[:modified], res[:modified])
-        out ||= (entry[:hash] != res[:hash]) if res.has_key?(:hash)
-        log.debug "#{entry[:path]} modified? r#{entry[:revision]} vs. r#{res[:revision]}, h#{entry[:hash]} vs. h#{res[:hash]}, t#{time_to_s(entry[:modified])} vs. t#{time_to_s(res[:modified])} => #{out}"
+        out ||= (entry[:remote_hash] != res[:remote_hash]) if res.has_key?(:remote_hash)
+        log.debug "#{entry[:path]} modified? r#{entry[:revision]} vs. r#{res[:revision]}, h#{entry[:remote_hash]} vs. h#{res[:remote_hash]}, t#{time_to_s(entry[:modified])} vs. t#{time_to_s(res[:modified])} => #{out}"
         out
       end
 
@@ -402,15 +404,16 @@ module Dbox
               # directory creation cannot go in a thread, since later
               # operations might depend on the directory being there
               create_dir(c)
-              database.add_entry(c[:path], true, c[:parent_id], nil, nil, nil)
+              database.add_entry(c[:path], true, c[:parent_id], nil, nil, nil, nil)
               force_metadata_update_from_server(c)
               changelist[:created] << c[:path]
             else
               # spin up a thread to upload the file
               ptasks.add do
                 begin
+                  local_hash = calculate_hash(relative_to_local_path(c[:path]))
                   upload_file(c)
-                  database.add_entry(c[:path], false, c[:parent_id], nil, nil, nil)
+                  database.add_entry(c[:path], false, c[:parent_id], nil, nil, nil, local_hash)
                   force_metadata_update_from_server(c)
                   changelist[:created] << c[:path]
                 rescue Dbox::ServerError => e
@@ -431,7 +434,9 @@ module Dbox
               # spin up a thread to upload the file
               ptasks.add do
                 begin
+                  local_hash = calculate_hash(relative_to_local_path(c[:path]))
                   upload_file(c)
+                  database.update_entry_by_path(c[:path], :local_hash => local_hash)
                   force_metadata_update_from_server(c)
                   changelist[:updated] << c[:path]
                 rescue Dbox::ServerError => e
@@ -483,7 +488,7 @@ module Dbox
         child_paths = list_contents(dir).sort
 
         child_paths.each do |p|
-          c = { :path => p, :modified => mtime(p), :is_dir => is_dir(p), :parent_path => dir[:path] }
+          c = { :path => p, :modified => mtime(p), :is_dir => is_dir(p), :parent_path => dir[:path], :local_hash => calculate_hash(relative_to_local_path(p)) }
           if entry = existing_entries[p]
             c[:id] = entry[:id]
             recur_dirs << c if c[:is_dir] # queue dir for later
@@ -517,8 +522,16 @@ module Dbox
       end
 
       def modified?(entry, res)
-        out = !times_equal?(entry[:modified], res[:modified])
-        log.debug "#{entry[:path]} modified? t#{time_to_s(entry[:modified])} vs. t#{time_to_s(res[:modified])} => #{out}"
+        out = true
+        if entry[:is_dir]
+          out = !times_equal?(entry[:modified], res[:modified])
+          log.debug "#{entry[:path]} modified? t#{time_to_s(entry[:modified])} vs. t#{time_to_s(res[:modified])} => #{out}"
+        else
+          eh = entry[:local_hash]
+          rh = res[:local_hash]
+          out = !(eh && rh && eh == rh)
+          log.debug "#{entry[:path]} modified? #{eh} vs. #{rh} => #{out}"
+        end
         out
       end
 
@@ -557,7 +570,7 @@ module Dbox
       def force_metadata_update_from_server(entry)
         res = gather_remote_info(entry)
         unless res == :not_modified
-          database.update_entry_by_path(entry[:path], :modified => res[:modified], :revision => res[:revision], :hash => res[:hash])
+          database.update_entry_by_path(entry[:path], :modified => res[:modified], :revision => res[:revision], :remote_hash => res[:remote_hash])
         end
         update_file_timestamp(database.find_by_path(entry[:path]))
       end

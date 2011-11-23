@@ -38,6 +38,7 @@ module Dbox
 
     class Operation
       include Loggable
+      include Utils
 
       attr_reader :database
 
@@ -66,38 +67,6 @@ module Dbox
         metadata[:remote_path]
       end
 
-      def local_to_relative_path(path)
-        if path.include?(local_path)
-          path.sub(local_path, "").sub(/^\//, "")
-        else
-          raise BadPath, "Not a local path: #{path}"
-        end
-      end
-
-      def remote_to_relative_path(path)
-        if path.include?(remote_path)
-          path.sub(remote_path, "").sub(/^\//, "")
-        else
-          raise BadPath, "Not a remote path: #{path}"
-        end
-      end
-
-      def relative_to_local_path(path)
-        if path && path.length > 0
-          File.join(local_path, path)
-        else
-          local_path
-        end
-      end
-
-      def relative_to_remote_path(path)
-        if path && path.length > 0
-          File.join(remote_path, path)
-        else
-          remote_path
-        end
-      end
-
       def remove_dotfiles(contents)
         contents.reject {|c| File.basename(c[:path]).start_with?(".") }
       end
@@ -115,25 +84,6 @@ module Dbox
       def lookup_id_by_path(path)
         @_ids ||= {}
         @_ids[path] ||= database.find_by_path(path)[:id]
-      end
-
-      def time_to_s(t)
-        case t
-        when Time
-          # matches dropbox time format
-          t.utc.strftime("%a, %d %b %Y %H:%M:%S +0000")
-        when String
-          t
-        end
-      end
-
-      def parse_time(t)
-        case t
-        when Time
-          t
-        when String
-          Time.parse(t)
-        end
       end
 
       def saving_timestamp(path)
@@ -357,7 +307,7 @@ module Dbox
 
       def modified?(entry, res)
         out = (entry[:revision] != res[:revision]) ||
-              (time_to_s(entry[:modified]) != time_to_s(res[:modified]))
+              !times_equal?(entry[:modified], res[:modified])
         out ||= (entry[:hash] != res[:hash]) if res.has_key?(:hash)
         log.debug "#{entry[:path]} modified? r#{entry[:revision]} vs. r#{res[:revision]}, h#{entry[:hash]} vs. h#{res[:hash]}, t#{time_to_s(entry[:modified])} vs. t#{time_to_s(res[:modified])} => #{out}"
         out
@@ -567,7 +517,7 @@ module Dbox
       end
 
       def modified?(entry, res)
-        out = time_to_s(entry[:modified]) != time_to_s(res[:modified])
+        out = !times_equal?(entry[:modified], res[:modified])
         log.debug "#{entry[:path]} modified? t#{time_to_s(entry[:modified])} vs. t#{time_to_s(res[:modified])} => #{out}"
         out
       end

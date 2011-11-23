@@ -12,6 +12,7 @@ require "sqlite3"
 require "active_support/core_ext/hash/indifferent_access"
 
 require "dbox/loggable"
+require "dbox/utils"
 require "dbox/api"
 require "dbox/database"
 require "dbox/db"

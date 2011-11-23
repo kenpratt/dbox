@@ -3,6 +3,7 @@ module Dbox
 
   class Database
     include Loggable
+    include Utils
 
     DB_FILENAME = ".dbox.sqlite3"
 
@@ -95,12 +96,11 @@ module Dbox
         log.info "Migrating to database v3"
 
         api = API.connect
-        remote_path = metadata[:remote_path]
         new_revisions = {}
 
         # fetch the new revision IDs from dropbox
         find_entries().each do |entry|
-          path = (entry[:path] && entry[:path].length > 0) ? File.join(remote_path, entry[:path]) : remote_path
+          path = relative_to_remote_path(entry[:path])
           begin
             data = api.metadata(path, nil, false)
             # record nev revision ("rev") iff old revisions ("revision") match
@@ -170,6 +170,10 @@ module Dbox
       out = { :local_path => local_path }
       out.merge!(make_fields(cols, res)) if res
       out
+    end
+
+    def remote_path
+      metadata()[:remote_path]
     end
 
     def update_metadata(fields)

@@ -264,6 +264,47 @@ describe Dbox do
       res[:failed].should eql([])
       res[:created].size.should eql(20)
     end
+
+    it "should be able to push a series of updates to the same file" do
+      Dbox.create(@remote, @local)
+
+      make_file "#{@local}/hello.txt"
+      Dbox.push(@local).should eql(:created => ["hello.txt"], :deleted => [], :updated => [], :failed => [])
+      make_file "#{@local}/hello.txt"
+      Dbox.push(@local).should eql(:created => [], :deleted => [], :updated => ["hello.txt"], :failed => [])
+      make_file "#{@local}/hello.txt"
+      Dbox.push(@local).should eql(:created => [], :deleted => [], :updated => ["hello.txt"], :failed => [])
+    end
+
+    it "should handle conflicting pushes of new files gracefully" do
+      Dbox.create(@remote, @local)
+
+      @alternate = "#{ALTERNATE_LOCAL_TEST_PATH}/#{@name}"
+      Dbox.clone(@remote, @alternate)
+
+      make_file "#{@local}/hello.txt"
+      Dbox.push(@local).should eql(:created => ["hello.txt"], :deleted => [], :updated => [], :failed => [])
+
+      make_file "#{@alternate}/hello.txt"
+      Dbox.push(@alternate).should eql(:created => [], :deleted => [], :updated => [], :conflicts => [{:original => "hello.txt", :renamed => "hello (1).txt"}], :failed => [])
+    end
+
+    # TODO this test is currently broken -- Dropbox returns 500s for
+    # conflicting updates to existing files
+    xit "should handle conflicting pushes of updated files gracefully" do
+      Dbox.create(@remote, @local)
+      make_file "#{@local}/hello.txt"
+      Dbox.push(@local)
+
+      @alternate = "#{ALTERNATE_LOCAL_TEST_PATH}/#{@name}"
+      Dbox.clone(@remote, @alternate)
+
+      make_file "#{@local}/hello.txt"
+      Dbox.push(@local).should eql(:created => [], :deleted => [], :updated => ["hello.txt"], :failed => [])
+
+      make_file "#{@alternate}/hello.txt"
+      Dbox.push(@alternate).should eql(:created => [], :deleted => [], :updated => [], :conflicts => [{:original => "hello.txt", :renamed => "hello (1).txt"}], :failed => [])
+    end
   end
 
   describe "#move" do

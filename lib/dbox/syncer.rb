@@ -412,10 +412,16 @@ module Dbox
               ptasks.add do
                 begin
                   local_hash = calculate_hash(relative_to_local_path(c[:path]))
-                  upload_file(c)
+                  res = upload_file(c)
                   database.add_entry(c[:path], false, c[:parent_id], nil, nil, nil, local_hash)
-                  force_metadata_update_from_server(c)
-                  changelist[:created] << c[:path]
+                  if c[:path] == res[:path]
+                    force_metadata_update_from_server(c)
+                    changelist[:created] << c[:path]
+                  else
+                    log.warn "#{c[:path]} had a conflict and was renamed to #{res[:path]} on the server"
+                    changelist[:conflicts] ||= []
+                    changelist[:conflicts] << { :original => c[:path], :renamed => res[:path] }
+                  end
                 rescue Dbox::ServerError => e
                   log.error "Error while uploading #{c[:path]}: #{e.inspect}"
                   changelist[:failed] << { :operation => :create, :path => c[:path], :error => e }
@@ -435,10 +441,16 @@ module Dbox
               ptasks.add do
                 begin
                   local_hash = calculate_hash(relative_to_local_path(c[:path]))
-                  upload_file(c)
+                  res = upload_file(c)
                   database.update_entry_by_path(c[:path], :local_hash => local_hash)
-                  force_metadata_update_from_server(c)
-                  changelist[:updated] << c[:path]
+                  if c[:path] == res[:path]
+                    force_metadata_update_from_server(c)
+                    changelist[:updated] << c[:path]
+                  else
+                    log.warn "#{c[:path]} had a conflict and was renamed to #{res[:path]} on the server"
+                    changelist[:conflicts] ||= []
+                    changelist[:conflicts] << { :original => c[:path], :renamed => res[:path] }
+                  end
                 rescue Dbox::ServerError => e
                   log.error "Error while uploading #{c[:path]}: #{e.inspect}"
                   changelist[:failed] << { :operation => :update, :path => c[:path], :error => e }
@@ -563,7 +575,8 @@ module Dbox
         File.open(local_path) do |f|
           db_entry = database.find_by_path(file[:path])
           last_revision = db_entry ? db_entry[:revision] : nil
-          api.put_file(remote_path, f, last_revision)
+          res = api.put_file(remote_path, f, last_revision)
+          process_basic_remote_props(res)
         end
       end
 

@@ -169,7 +169,7 @@ module Dbox
         begin
           @client.file_move(old_path, new_path)
         rescue DropboxError => e
-          if e.http_response.kind_of?(Net::HTTPBadRequest)
+          if e.http_response.kind_of?(Net::HTTPForbidden)
             raise RemoteAlreadyExists, "Error during move -- there may already be a Dropbox folder at #{new_path}"
           else
             raise e

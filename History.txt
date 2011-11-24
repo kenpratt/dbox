@@ -1,3 +1,7 @@
+== 0.6.2 / 2011-11-24
+  * Bug Fixes
+    * Fixed db migration.
+
 == 0.6.1 / 2011-11-24
   * Bug Fixes
     * Fixed sync command in command-line client.

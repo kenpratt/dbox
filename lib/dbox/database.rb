@@ -100,7 +100,7 @@ module Dbox
         new_revisions = {}
 
         # fetch the new revision IDs from dropbox
-        find_entries().each do |entry|
+        find_entries_with_columns([ :id, :path, :is_dir, :parent_id, :hash, :modified, :revision ]).each do |entry|
           path = relative_to_remote_path(entry[:path])
           begin
             data = api.metadata(path, nil, false)
@@ -164,7 +164,7 @@ module Dbox
         })
 
         # calculate hashes on files with same timestamp as we have (as that was the previous mechanism used to check freshness)
-        find_entries().each do |entry|
+        find_entries_with_columns([ :id, :path, :is_dir, :parent_id, :local_hash, :remote_hash, :modified, :revision ]).each do |entry|
           unless entry[:is_dir]
             path = relative_to_local_path(entry[:path])
             if times_equal?(File.mtime(path), entry[:modified])
@@ -283,18 +283,26 @@ module Dbox
     private
 
     def find_entry(conditions = "", *args)
+      find_entry_with_columns(ENTRY_COLS, conditions, *args)
+    end
+
+    def find_entry_with_columns(entry_cols, conditions = "", *args)
       res = @db.get_first_row(%{
-        SELECT #{ENTRY_COLS.join(",")} FROM entries #{conditions} LIMIT 1;
+        SELECT #{entry_cols.join(",")} FROM entries #{conditions} LIMIT 1;
       }, *args)
-      entry_res_to_fields(res)
+      entry_res_to_fields(entry_cols, res)
     end
 
     def find_entries(conditions = "", *args)
+      find_entries_with_columns(ENTRY_COLS, conditions, *args)
+    end
+
+    def find_entries_with_columns(entry_cols, conditions = "", *args)
       out = []
       @db.execute(%{
-        SELECT #{ENTRY_COLS.join(",")} FROM entries #{conditions} ORDER BY path ASC;
+        SELECT #{entry_cols.join(",")} FROM entries #{conditions} ORDER BY path ASC;
       }, *args) do |res|
-        out << entry_res_to_fields(res)
+        out << entry_res_to_fields(entry_cols, res)
       end
       out
     end
@@ -327,9 +335,9 @@ module Dbox
       }, *args)
     end
 
-    def entry_res_to_fields(res)
+    def entry_res_to_fields(entry_cols, res)
       if res
-        h = make_fields(ENTRY_COLS, res)
+        h = make_fields(entry_cols, res)
         h[:is_dir] = (h[:is_dir] == 1)
         h[:modified]  = Time.at(h[:modified]) if h[:modified]
         h

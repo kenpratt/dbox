@@ -192,19 +192,21 @@ describe Dbox do
       Dbox.clone(@remote, @alternate)
 
       make_file "#{@local}/hello.txt"
+      make_file "#{@local}/hello (1).txt"
       make_file "#{@local}/goodbye.txt"
       Dbox.push(@local)
 
       make_file "#{@alternate}/hello.txt"
       make_file "#{@alternate}/hello (1).txt"
       make_file "#{@alternate}/hello (3).txt"
+      make_file "#{@alternate}/hello (4).txt"
       make_file "#{@alternate}/hello (test).txt"
       make_file "#{@alternate}/goodbye.txt"
       make_file "#{@alternate}/goodbye (1).txt"
       make_file "#{@alternate}/goodbye (2).txt"
       make_file "#{@alternate}/goodbye (3).txt"
       make_file "#{@alternate}/goodbye ().txt"
-      Dbox.pull(@alternate).should eql(:created => ["goodbye.txt", "hello.txt"], :deleted => [], :updated => [""], :conflicts => [{:original => "goodbye.txt", :renamed => "goodbye (4).txt"}, {:original => "hello.txt", :renamed => "hello (2).txt"}], :failed => [])
+      Dbox.pull(@alternate).should eql(:created => ["goodbye.txt", "hello (1).txt", "hello.txt"], :deleted => [], :updated => [""], :conflicts => [{:original => "goodbye.txt", :renamed => "goodbye (4).txt"}, {:original => "hello (1).txt", :renamed => "hello (5).txt"}, {:original => "hello.txt", :renamed => "hello (2).txt"}], :failed => [])
     end
   end
 

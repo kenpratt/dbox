@@ -141,6 +141,71 @@ describe Dbox do
       res[:failed].should eql([])
       res[:created].size.should eql(20)
     end
+
+    it "should be able to pull a series of updates to the same file" do
+      Dbox.create(@remote, @local)
+      @alternate = "#{ALTERNATE_LOCAL_TEST_PATH}/#{@name}"
+      Dbox.clone(@remote, @alternate)
+
+      make_file "#{@local}/hello.txt"
+      Dbox.push(@local)
+      Dbox.pull(@alternate).should eql(:created => ["hello.txt"], :deleted => [], :updated => [""], :failed => [])
+      make_file "#{@local}/hello.txt"
+      Dbox.push(@local)
+      Dbox.pull(@alternate).should eql(:created => [], :deleted => [], :updated => ["", "hello.txt"], :failed => [])
+      make_file "#{@local}/hello.txt"
+      Dbox.push(@local)
+      Dbox.pull(@alternate).should eql(:created => [], :deleted => [], :updated => ["", "hello.txt"], :failed => [])
+    end
+
+    it "should handle conflicting pulls of new files gracefully" do
+      Dbox.create(@remote, @local)
+      @alternate = "#{ALTERNATE_LOCAL_TEST_PATH}/#{@name}"
+      Dbox.clone(@remote, @alternate)
+
+      make_file "#{@local}/hello.txt"
+      Dbox.push(@local)
+
+      make_file "#{@alternate}/hello.txt"
+      Dbox.pull(@alternate).should eql(:created => ["hello.txt"], :deleted => [], :updated => [""], :conflicts => [{:original => "hello.txt", :renamed => "hello (1).txt"}], :failed => [])
+    end
+
+    it "should handle conflicting pulls of updated files gracefully" do
+      Dbox.create(@remote, @local)
+      @alternate = "#{ALTERNATE_LOCAL_TEST_PATH}/#{@name}"
+      Dbox.clone(@remote, @alternate)
+
+      make_file "#{@local}/hello.txt"
+      Dbox.push(@local)
+      Dbox.pull(@alternate).should eql(:created => ["hello.txt"], :deleted => [], :updated => [""], :failed => [])
+
+      make_file "#{@local}/hello.txt"
+      Dbox.push(@local)
+
+      make_file "#{@alternate}/hello.txt"
+      Dbox.pull(@alternate).should eql(:created => [], :deleted => [], :updated => ["", "hello.txt"], :conflicts => [{:original => "hello.txt", :renamed => "hello (1).txt"}], :failed => [])
+    end
+
+    it "should deal with all sorts of weird filenames when renaming due to conflicts on pull" do
+      Dbox.create(@remote, @local)
+      @alternate = "#{ALTERNATE_LOCAL_TEST_PATH}/#{@name}"
+      Dbox.clone(@remote, @alternate)
+
+      make_file "#{@local}/hello.txt"
+      make_file "#{@local}/goodbye.txt"
+      Dbox.push(@local)
+
+      make_file "#{@alternate}/hello.txt"
+      make_file "#{@alternate}/hello (1).txt"
+      make_file "#{@alternate}/hello (3).txt"
+      make_file "#{@alternate}/hello (test).txt"
+      make_file "#{@alternate}/goodbye.txt"
+      make_file "#{@alternate}/goodbye (1).txt"
+      make_file "#{@alternate}/goodbye (2).txt"
+      make_file "#{@alternate}/goodbye (3).txt"
+      make_file "#{@alternate}/goodbye ().txt"
+      Dbox.pull(@alternate).should eql(:created => ["goodbye.txt", "hello.txt"], :deleted => [], :updated => [""], :conflicts => [{:original => "goodbye.txt", :renamed => "goodbye (4).txt"}, {:original => "hello.txt", :renamed => "hello (2).txt"}], :failed => [])
+    end
   end
 
   describe "#push" do

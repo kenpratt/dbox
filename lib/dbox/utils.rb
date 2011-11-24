@@ -68,5 +68,15 @@ module Dbox
         nil
       end
     end
+
+    def find_nonconflicting_path(filepath)
+      proposed = filepath
+      while File.exists?(proposed)
+        dir, p = File.split(proposed)
+        p = p.sub(/^(.*?)( \((\d+)\))?(\..*?)?$/) { "#{$1} (#{$3 ? $3.to_i + 1 : 1})#{$4}" }
+        proposed = File.join(dir, p)
+      end
+      proposed
+    end
   end
 end

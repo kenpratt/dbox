@@ -88,8 +88,9 @@ module Dbox
 
       def saving_timestamp(path)
         mtime = File.mtime(path)
-        yield
+        res = yield
         File.utime(Time.now, mtime, path)
+        res
       end
 
       def saving_parent_timestamp(entry, &proc)
@@ -185,10 +186,14 @@ module Dbox
             else
               ptasks.add do
                 begin
-                  create_file(c)
+                  res = create_file(c)
                   local_hash = calculate_hash(relative_to_local_path(c[:path]))
                   database.add_entry(c[:path], false, c[:parent_id], c[:modified], c[:revision], c[:remote_hash], local_hash)
                   changelist[:created] << c[:path]
+                  if res.kind_of?(Array) && res[0] == :conflict
+                    changelist[:conflicts] ||= []
+                    changelist[:conflicts] << res[1]
+                  end
                 rescue Dbox::ServerError => e
                   log.error "Error while downloading #{c[:path]}: #{e.inspect}"
                   parent_ids_of_failed_entries << c[:parent_id]
@@ -204,10 +209,14 @@ module Dbox
             else
               ptasks.add do
                 begin
-                  update_file(c)
+                  res = update_file(c)
                   local_hash = calculate_hash(relative_to_local_path(c[:path]))
                   database.update_entry_by_path(c[:path], :modified => c[:modified], :revision => c[:revision], :remote_hash => c[:remote_hash], :local_hash => local_hash)
                   changelist[:updated] << c[:path]
+                  if res.kind_of?(Array) && res[0] == :conflict
+                    changelist[:conflicts] ||= []
+                    changelist[:conflicts] << res[1]
+                  end
                 rescue Dbox::ServerError => e
                   log.error "Error while downloading #{c[:path]}: #{e.inspect}"
                   parent_ids_of_failed_entries << c[:parent_id]
@@ -234,7 +243,7 @@ module Dbox
         end
 
         # sort & return output
-        changelist.keys.each {|k| changelist[k].sort! }
+        changelist.keys.each {|k| k == :conflicts ? changelist[k].sort! {|c1, c2| c1[:original] <=> c2[:original] } : changelist[k].sort! }
         changelist
       end
 
@@ -358,6 +367,15 @@ module Dbox
         local_path = relative_to_local_path(file[:path])
         remote_path = relative_to_remote_path(file[:path])
 
+        # check to ensure we aren't overwriting an untracked file or a
+        # file with local modifications
+        clobbering = false
+        if entry = database.find_by_path(file[:path])
+          clobbering = calculate_hash(local_path) != entry[:local_hash]
+        else
+          clobbering = File.exists?(local_path)
+        end
+
         # stream files larger than the minimum
         stream = file[:size] && file[:size] > MIN_BYTES_TO_STREAM_DOWNLOAD
 
@@ -367,9 +385,23 @@ module Dbox
           api.get_file(remote_path, f, stream)
         end
 
+        # rename old file if clobbering
+        if clobbering && File.exists?(local_path)
+          backup_path = find_nonconflicting_path(local_path)
+          FileUtils.mv(local_path, backup_path)
+          backup_relpath = local_to_relative_path(backup_path)
+          log.warn "#{file[:path]} had a conflict and the existing copy was renamed to #{backup_relpath} locally"
+        end
+
         # atomic move over to the real file, and update the timestamp
         FileUtils.mv(tmp, local_path)
         update_file_timestamp(file)
+
+        if backup_relpath
+          [:conflict, { :original => file[:path], :renamed => backup_relpath }]
+        else
+          true
+        end
       end
 
     end

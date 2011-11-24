@@ -206,7 +206,16 @@ describe Dbox do
       make_file "#{@alternate}/goodbye (2).txt"
       make_file "#{@alternate}/goodbye (3).txt"
       make_file "#{@alternate}/goodbye ().txt"
-      Dbox.pull(@alternate).should eql(:created => ["goodbye.txt", "hello (1).txt", "hello.txt"], :deleted => [], :updated => [""], :conflicts => [{:original => "goodbye.txt", :renamed => "goodbye (4).txt"}, {:original => "hello (1).txt", :renamed => "hello (5).txt"}, {:original => "hello.txt", :renamed => "hello (2).txt"}], :failed => [])
+
+      # there's a race condition, so the output could be one of two things
+      res = Dbox.pull(@alternate)
+      res[:created].should eql(["goodbye.txt", "hello (1).txt", "hello.txt"])
+      res[:updated].should eql([""])
+      res[:deleted].should eql([])
+      res[:failed].should eql([])
+      c = (res[:conflicts] == [{:original => "goodbye.txt", :renamed => "goodbye (4).txt"}, {:original => "hello (1).txt", :renamed => "hello (5).txt"}, {:original => "hello.txt", :renamed => "hello (2).txt"}]) ||
+        (res[:conflicts] == [{:original => "goodbye.txt", :renamed => "goodbye (4).txt"}, {:original => "hello (1).txt", :renamed => "hello (2).txt"}, {:original => "hello.txt", :renamed => "hello (5).txt"}])
+      c.should be_true
     end
   end
 

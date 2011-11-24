@@ -1,3 +1,7 @@
+== 0.6.1 / 2011-11-24
+  * Bug Fixes
+    * Fixed sync command in command-line client.
+
 == 0.6.0 / 2011-11-24
   * Major Enhancements
     * Upgrade from Dropbox API v0 to v1.

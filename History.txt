@@ -1,0 +1,82 @@
+== 0.6.0 / 2011-11-24
+  * Major Enhancements
+    * Upgrade from Dropbox API v0 to v1.
+    * Storage of hashes of local files to alleviate problems with moving/copying directories causing files to be detected as modified.
+    * Handling of writes that would overwrite unsaved data (files are renamed).
+    * SSL support.
+
+== 0.5.3 / 2011-11-04
+  * Major Enhancements
+    * Tracking & returning of files that fail to sync.
+    * Better consistency during failure scenarios.
+  * Minor Enhancements
+    * Returning of exit status of 1 when failures occur.
+  * Bug Fixes
+    * Fixed incorrect handling of some Dropbox server errors.
+
+== 0.5.2 / 2011-10-03
+  * Bug Fixes
+    * Fixed broken database migration.
+
+== 0.5.1 / 2011-10-03
+  * Bug Fixes
+    * Fixed cascading deletes on directory deletion.
+    * Fixed support for moving/renaming local repository.
+
+== 0.5.0 / 2011-09-19
+  * Major Enhancements
+    * Complete rewrite of metadata storage to use SQLite database.
+    * Streaming downloads.
+    * Parallelized downloads and uploads.
+  * Minor Enhancements
+    * Atomic saving of downloaded files to eliminate partial files if killed during download.
+
+== 0.4.4 / 2011-06-28
+  * Minor Enhancements
+    * Detection of corrupt database.
+    * Added gem dependencies.
+  * Bug Fixes
+    * Fixed Ruby 1.9 support.
+    * Fixed DB corruption issue when hard killing process.
+
+== 0.4.3 / 2011-05-18
+  * Minor Enhancements
+    * More robust DB saving to handle errors after partial pushes or pulls.
+  * Bug Fixes
+    * Fixed revision stamping.
+    * Fixed sorting of filenames in changelist.
+
+== 0.4.2 / 2011-05-17
+  * Bug Fixes
+    * Fixed directories with certain characters: []{}*?.
+    * Fixed URL encoding.
+
+== 0.4.1 / 2011-05-16
+  * Minor Enhancements
+    * Added Dbox.exists? to Ruby API.
+    * Improved logging.
+
+== 0.4.0 / 2011-05-16
+  * Major Enhancements
+    * Added move API to rename remote folder.
+
+== 0.3.0 / 2011-05-14
+  * Major Enhancements
+    * Added returning of changelist from push & pull operations.
+    * Improved error handling.
+  * Minor Enhancements
+    * Logging cleanup.
+  * Bug Fixes
+    * Fixed re-download after upload issue.
+
+== 0.2.0 / 2011-05-14
+  * Major Enhancements
+    * Logging.
+    * Tests.
+
+== 0.1.0 / 2011-05-13
+  * Inaugural Release
+    * Ruby API.
+    * Command-line client.
+    * Create, clone, pull, push support.
+    * Metadata database to track synchronized content.

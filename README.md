@@ -1,9 +1,13 @@
 dbox
 ====
 
-An easy way to push and pull your Dropbox folders, with fine-grained control over what folder you are syncing, where you are syncing it to, and when you are doing it.
+Dropbox integration made easy.
 
-**IMPORTANT:** This is **not** an automated Dropbox client. It will exit after sucessfully pushing/pulling, so if you want regular updates, you can run it in cron, a loop, etc. If you do want to run it in a loop, take a look at [sample_polling_script.rb](http://github.com/kenpratt/dbox/blob/master/sample_polling_script.rb).
+Push and pull your Dropbox folders, with fine-grained control over what folder you are syncing, where you are syncing it to, and when you are doing it.
+
+Take your pick: a command-line client or a Ruby API.
+
+**IMPORTANT:** This is **not** an automated Dropbox client. It will exit after sucessfully pushing/pulling, so if you want regular updates, you can run it in cron, a loop, etc. If you do want to run it in a loop, take a look at [sample_polling_script.rb](http://github.com/kenpratt/dbox/blob/master/sample_polling_script.rb). You get deterministic control over what you want Dropbox to do and when you want it to happen.
 
 
 Installation
@@ -17,7 +21,7 @@ $ gem install dbox
 
 ### Get developer keys
 
-* Follow the instructions at https://www.dropbox.com/developers/quickstart to create a Dropbox development application, and copy the application keys. Unless you get your app approved for production status, these keys will only work with the account you create them under, so make sure you are logged in with the account you want to access from dbox.
+* Follow the instructions at https://www.dropbox.com/developers/quickstart to create a Dropbox development application, and copy the application keys. Unless you get your app approved for production status, these keys will only work with the account you create them under, so make sure you are logged in with the account you want to access from ```dbox```.
 
 * Now either set the keys as environment variables:
 
@@ -26,7 +30,7 @@ $ export DROPBOX_APP_KEY=cmlrrjd3j0gbend
 $ export DROPBOX_APP_SECRET=uvuulp75xf9jffl
 ```
 
-* Or include them in calls to dbox:
+* Or include them in calls to ```dbox```:
 
 ```sh
 $ DROPBOX_APP_KEY=cmlrrjd3j0gbend DROPBOX_APP_SECRET=uvuulp75xf9jffl dbox ...
@@ -53,7 +57,7 @@ $ export DROPBOX_AUTH_KEY=v4d7l1rez1czksn
 $ export DROPBOX_AUTH_SECRET=pqej9rmnj0i1gcxr4
 ```
 
-* Or include them in calls to dbox:
+* Or include them in calls to ```dbox```:
 
 ```sh
 $ DROPBOX_AUTH_KEY=v4d7l1rez1czksn DROPBOX_AUTH_SECRET=pqej9rmnj0i1gcxr4 dbox ...
@@ -146,10 +150,16 @@ Oh, Hello
 Using dbox from Ruby
 --------------------
 
-The Ruby clone, pull, and push APIs return a hash listing the changes made during that pull/push. If any failures were encountered while uploading or downloading from Dropbox, they will be shown in the ```:failed``` entry in the hash. Often, trying your operation again will resolve the failures as the Dropbox API returns errors for valid operations on occasion.
+The Ruby clone, pull, and push APIs return a hash of the changes made during that operation. If any failures were encountered while uploading or downloading from Dropbox, they will be shown in the ```:failed``` entry in the hash. Often, trying your operation again will resolve the failures as the Dropbox API occasionally returns errors for valid operations.
 
 ```ruby
-{ :created => ["foo.txt"], :deleted => [], :updated => [], :failed => [] }
+{ :created => ["foo.txt"], :deleted => [], :updated => [] :failed => [] }
+```
+
+If any conflicts occur where file contents would be lost, the conflicting file is renamed and the resulting hash has a ```:conflicts``` entry. On a push operation, the conflicting file being pushed will be renamed. On a pull, the existing file that would have been overwritten will be renamed and the downloaded file will take the name (as that will keep multiple clients in sync).
+
+```ruby
+{ :created => [], :updated => [], :deleted => [], :conflicts => [{ :original => "foo.txt", :renamed => "foo (1).txt" }], :failed => [] }
 ```
 
 ### Usage

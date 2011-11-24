@@ -367,7 +367,7 @@ describe Dbox do
 
     # TODO this test is currently broken -- Dropbox returns 500s for
     # conflicting updates to existing files
-    xit "should handle conflicting pushes of updated files gracefully" do
+    it "should handle conflicting pushes of updated files gracefully" do
       Dbox.create(@remote, @local)
       make_file "#{@local}/hello.txt"
       Dbox.push(@local)

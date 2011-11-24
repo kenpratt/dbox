@@ -54,12 +54,18 @@ when "create", "clone"
 
   res = Dbox.send(command, remote_path, local_path)
   exit 1 if res[:failed].size > 0
-when "pull", "push", "sync"
+when "pull", "push"
   # default to current directory
   local_path = args[0] || "."
 
   res = Dbox.send(command, local_path)
   exit 1 if res[:failed].size > 0
+when "sync"
+  # default to current directory
+  local_path = args[0] || "."
+
+  res = Dbox.sync(local_path)
+  exit 1 if res[:pull][:failed].size > 0 || res[:push][:failed].size > 0
 when "move"
   remote_path = args[0]
 

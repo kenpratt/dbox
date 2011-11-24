@@ -1,6 +1,6 @@
+* Make Dbox case insentive on case sensitive filesystems, as Dropbox is case insensitive.
 * Refactor threading in change detection in pull to use ParallelTasks?
 * Saving SQLite db changes dir timestamp -- try to preserve it?
-* Add a "sync" command that pushes and pulls in one go
 * See if prepared statements speed up operations on large repos much
 * Look down directory tree until you hit a .dbox.sqlite3 file so you can use commands from anywhere inside a tree (like git)
 * Add support for partial push/pull (subtree push/pull)?

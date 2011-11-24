@@ -14,6 +14,7 @@ Commands:
   clone <remote_path> [<local_path>]    Clone an existing Dropbox folder
   pull [<local_path>]                   Pull chonges from Dropbox
   push [<local_path>]                   Push changes to Dropbox
+  sync [<local_path>]                   Sync changes to Dropbox
   move <new_remote_path> [<local_path>] Move the remote Dropbox folder to a new location
 
 Environment varables needed for everything:
@@ -53,7 +54,7 @@ when "create", "clone"
 
   res = Dbox.send(command, remote_path, local_path)
   exit 1 if res[:failed].size > 0
-when "pull", "push"
+when "pull", "push", "sync"
   # default to current directory
   local_path = args[0] || "."
 

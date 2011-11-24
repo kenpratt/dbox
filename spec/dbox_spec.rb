@@ -365,8 +365,6 @@ describe Dbox do
       Dbox.push(@alternate).should eql(:created => [], :deleted => [], :updated => [], :conflicts => [{:original => "hello.txt", :renamed => "hello (1).txt"}], :failed => [])
     end
 
-    # TODO this test is currently broken -- Dropbox returns 500s for
-    # conflicting updates to existing files
     it "should handle conflicting pushes of updated files gracefully" do
       Dbox.create(@remote, @local)
       make_file "#{@local}/hello.txt"
@@ -380,6 +378,58 @@ describe Dbox do
 
       make_file "#{@alternate}/hello.txt"
       Dbox.push(@alternate).should eql(:created => [], :deleted => [], :updated => [], :conflicts => [{:original => "hello.txt", :renamed => "hello (1).txt"}], :failed => [])
+    end
+  end
+
+  describe "#sync" do
+    it "should fail if the local dir is missing" do
+      expect { Dbox.sync(@local) }.to raise_error(Dbox::DatabaseError)
+    end
+
+    it "should be able to sync basic changes" do
+      Dbox.create(@remote, @local)
+      @alternate = "#{ALTERNATE_LOCAL_TEST_PATH}/#{@name}"
+      Dbox.clone(@remote, @alternate)
+
+      Dbox.sync(@local).should eql(:pull => { :created => [], :deleted => [], :updated => [], :failed => [] },
+                                   :push => { :created => [], :deleted => [], :updated => [], :failed => [] })
+      Dbox.sync(@alternate).should eql(:pull => { :created => [], :deleted => [], :updated => [], :failed => [] },
+                                       :push => { :created => [], :deleted => [], :updated => [], :failed => [] })
+
+      make_file "#{@local}/hello.txt"
+      Dbox.sync(@local).should eql(:pull => { :created => [], :deleted => [], :updated => [], :failed => [] },
+                                   :push => { :created => ["hello.txt"], :deleted => [], :updated => [], :failed => [] })
+      Dbox.sync(@alternate).should eql(:pull => { :created => ["hello.txt"], :deleted => [], :updated => [""], :failed => [] },
+                                       :push => { :created => [], :deleted => [], :updated => [], :failed => [] })
+    end
+
+    it "should be able to sync complex changes" do
+      Dbox.create(@remote, @local)
+      @alternate = "#{ALTERNATE_LOCAL_TEST_PATH}/#{@name}"
+      Dbox.clone(@remote, @alternate)
+
+      Dbox.sync(@local).should eql(:pull => { :created => [], :deleted => [], :updated => [], :failed => [] },
+                                   :push => { :created => [], :deleted => [], :updated => [], :failed => [] })
+      Dbox.sync(@alternate).should eql(:pull => { :created => [], :deleted => [], :updated => [], :failed => [] },
+                                       :push => { :created => [], :deleted => [], :updated => [], :failed => [] })
+
+      make_file "#{@local}/hello.txt"
+      make_file "#{@local}/goodbye.txt"
+      make_file "#{@local}/so_long.txt"
+      make_file "#{@alternate}/hello.txt"
+      make_file "#{@alternate}/farewell.txt"
+      Dbox.sync(@local).should eql(:pull => { :created => [], :deleted => [], :updated => [], :failed => [] },
+                                   :push => { :created => ["goodbye.txt", "hello.txt", "so_long.txt"], :deleted => [], :updated => [], :failed => [] })
+      Dbox.sync(@alternate).should eql(:pull => { :created => ["goodbye.txt", "hello.txt", "so_long.txt"], :deleted => [], :updated => [""], :failed => [], :conflicts => [{ :renamed => "hello (1).txt", :original => "hello.txt" }] },
+                                       :push => { :created => ["farewell.txt", "hello (1).txt"], :deleted => [], :updated => [], :failed => [] })
+
+      make_file "#{@alternate}/farewell.txt"
+      make_file "#{@alternate}/goodbye.txt"
+      make_file "#{@alternate}/au_revoir.txt"
+      Dbox.sync(@alternate).should eql(:pull => { :created => [], :deleted => [], :updated => [""], :failed => [] },
+                                       :push => { :created => ["au_revoir.txt"], :deleted => [], :updated => ["farewell.txt", "goodbye.txt"], :failed => [] })
+      Dbox.sync(@local).should eql(:pull => { :created => ["au_revoir.txt", "farewell.txt", "hello (1).txt"], :deleted => [], :updated => ["", "goodbye.txt"], :failed => [] },
+                                   :push => { :created => [], :deleted => [], :updated => [], :failed => [] })
     end
   end
 

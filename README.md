@@ -101,6 +101,12 @@ $ dbox pull [<local_path>]
 $ dbox push [<local_path>]
 ```
 
+#### Sync (pull changes from Dropbox, then push changes to Dropbox)
+
+```sh
+$ dbox sync [<local_path>]
+```
+
 #### Move (move/rename the Dropbox folder)
 
 ```sh
@@ -162,6 +168,8 @@ If any conflicts occur where file contents would be lost, the conflicting file i
 { :created => [], :updated => [], :deleted => [], :conflicts => [{ :original => "foo.txt", :renamed => "foo (1).txt" }], :failed => [] }
 ```
 
+The sync API returns a hash with two entries: ```:push``` and ```:pull```, which contain the change hashes for the two operations.
+
 ### Usage
 
 #### Setup
@@ -194,6 +202,12 @@ Dbox.pull(local_path)
 
 ```ruby
 Dbox.push(local_path)
+```
+
+#### Sync (pull changes from Dropbox, then push changes to Dropbox)
+
+```ruby
+Dbox.sync(local_path)
 ```
 
 #### Move (move/rename the Dropbox folder)

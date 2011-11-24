@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = "dbox"
-  s.version = "0.5.3"
+  s.version = "0.6.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Ken Pratt"]
-  s.date = "2011-11-15"
+  s.date = "2011-11-24"
   s.description = "An easy-to-use Dropbox client with fine-grained control over syncs."
   s.email = "ken@kenpratt.net"
   s.executables = ["dbox"]
@@ -19,6 +19,7 @@ Gem::Specification.new do |s|
   ]
   s.files = [
     ".document",
+    "History.txt",
     "LICENSE.txt",
     "README.md",
     "Rakefile",
@@ -28,11 +29,13 @@ Gem::Specification.new do |s|
     "dbox.gemspec",
     "lib/dbox.rb",
     "lib/dbox/api.rb",
+    "lib/dbox/cacert.pem",
     "lib/dbox/database.rb",
     "lib/dbox/db.rb",
     "lib/dbox/loggable.rb",
     "lib/dbox/parallel_tasks.rb",
     "lib/dbox/syncer.rb",
+    "lib/dbox/utils.rb",
     "sample_polling_script.rb",
     "spec/dbox_spec.rb",
     "spec/spec_helper.rb",

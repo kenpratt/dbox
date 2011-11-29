@@ -11,7 +11,7 @@ $ dbox clone Public
 $ cd Public
 $ echo "Hello World" > hello.txt
 $ dbox sync
-[INFO] Uploading /Public/hello2.txt
+[INFO] Uploading /Public/hello.txt
 ```
 
 **IMPORTANT:** This is **not** an automated Dropbox client. It will exit after sucessfully pushing/pulling, so if you want regular updates, you can run it in cron, a loop, etc. If you do want to run it in a loop, take a look at [sample_polling_script.rb](http://github.com/kenpratt/dbox/blob/master/sample_polling_script.rb). You get deterministic control over what you want Dropbox to do and when you want it to happen.

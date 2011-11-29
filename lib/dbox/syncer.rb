@@ -148,6 +148,20 @@ module Dbox
       def remove_tmpfiles
         Dir["#{local_path}/.*.part"].each {|f| FileUtils.rm(f) }
       end
+
+      def sort_changelist(changelist)
+        changelist.keys.each do |k|
+          case k
+          when :conflicts
+            changelist[k].sort! {|c1, c2| c1[:original] <=> c2[:original] }
+          when :failed
+            changelist[k].sort! {|c1, c2| c1[:path] <=> c2[:path] }
+          else
+            changelist[k].sort!
+          end
+        end
+        changelist
+      end
     end
 
     class Pull < Operation
@@ -243,8 +257,7 @@ module Dbox
         end
 
         # sort & return output
-        changelist.keys.each {|k| k == :conflicts ? changelist[k].sort! {|c1, c2| c1[:original] <=> c2[:original] } : changelist[k].sort! }
-        changelist
+        sort_changelist(changelist)
       end
 
       def calculate_changes(dir, operation = :update)
@@ -518,8 +531,7 @@ module Dbox
         ptasks.finish
 
         # sort & return output
-        changelist.keys.each {|k| changelist[k].sort! }
-        changelist
+        sort_changelist(changelist)
       end
 
       def calculate_changes(dir)

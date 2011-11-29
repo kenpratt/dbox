@@ -202,7 +202,7 @@ module Dbox
           res.read_body {|chunk| io.write(chunk) }
           true
         else
-          raise DropboxError.new("Invalid response #{res}\n#{res.body}")
+          raise DropboxError.new("Invalid response #{res.inspect}")
         end
       end
     end

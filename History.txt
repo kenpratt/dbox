@@ -1,3 +1,7 @@
+== 0.6.4 / 2011-11-29
+  * Minor Enhancements
+    * Removed workaround for /put_files API bug, as Dropbox has fixed it.
+
 == 0.6.3 / 2011-11-29
   * Bug Fixes
     * Fixed crash when multiple Dropbox operations fail.

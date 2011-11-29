@@ -151,16 +151,6 @@ module Dbox
 
     def put_file(path, file_obj, previous_revision=nil)
       log.info "Uploading #{path}"
-
-      # temporary workaround for bug in Dropbox /put_files API where
-      # passing a valid older parent_rev causes a 500
-      if previous_revision
-        m = metadata(path)
-        if m && m[:rev] && m[:rev] != previous_revision
-          previous_revision = nil
-        end
-      end
-
       run(path) do
         @client.put_file(path, file_obj, false, previous_revision)
       end

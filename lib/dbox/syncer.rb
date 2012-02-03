@@ -208,7 +208,7 @@ module Dbox
                     changelist[:conflicts] ||= []
                     changelist[:conflicts] << res[1]
                   end
-                rescue Dbox::ServerError => e
+                rescue Exception => e
                   log.error "Error while downloading #{c[:path]}: #{e.inspect}"
                   parent_ids_of_failed_entries << c[:parent_id]
                   changelist[:failed] << { :operation => :create, :path => c[:path], :error => e }
@@ -231,7 +231,7 @@ module Dbox
                     changelist[:conflicts] ||= []
                     changelist[:conflicts] << res[1]
                   end
-                rescue Dbox::ServerError => e
+                rescue Exception => e
                   log.error "Error while downloading #{c[:path]}: #{e.inspect}"
                   parent_ids_of_failed_entries << c[:parent_id]
                   changelist[:failed] << { :operation => :create, :path => c[:path], :error => e }
@@ -320,8 +320,12 @@ module Dbox
         # recursively process new & existing subdirectories in parallel
         threads = recur_dirs.map do |operation, dir|
           Thread.new do
-            clone_api_into_current_thread()
-            Thread.current[:out] = calculate_changes(dir, operation)
+            begin
+              clone_api_into_current_thread()
+              Thread.current[:out] = calculate_changes(dir, operation)
+            rescue Exception => e
+              log.error "Error while caclulating changes #{dir}: #{operation}"
+            end
           end
         end
         threads.each {|t| t.join; out += t[:out] }
@@ -467,7 +471,7 @@ module Dbox
                     changelist[:conflicts] ||= []
                     changelist[:conflicts] << { :original => c[:path], :renamed => res[:path] }
                   end
-                rescue Dbox::ServerError => e
+                rescue Exception => e
                   log.error "Error while uploading #{c[:path]}: #{e.inspect}"
                   changelist[:failed] << { :operation => :create, :path => c[:path], :error => e }
                 end
@@ -496,7 +500,7 @@ module Dbox
                     changelist[:conflicts] ||= []
                     changelist[:conflicts] << { :original => c[:path], :renamed => res[:path] }
                   end
-                rescue Dbox::ServerError => e
+                rescue Exception => e
                   log.error "Error while uploading #{c[:path]}: #{e.inspect}"
                   changelist[:failed] << { :operation => :update, :path => c[:path], :error => e }
                 end
@@ -517,7 +521,7 @@ module Dbox
                 end
                 database.delete_entry_by_path(c[:path])
                 changelist[:deleted] << c[:path]
-              rescue Dbox::ServerError => e
+              rescue Exception => e
                 log.error "Error while deleting #{c[:path]}: #{e.inspect}"
                 changelist[:failed] << { :operation => :delete, :path => c[:path], :error => e }
               end

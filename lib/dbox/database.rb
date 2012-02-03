@@ -319,7 +319,7 @@ module Dbox
     end
 
     def update_entry(where_clause, fields)
-      log.debug "Updating entry: #{where_clause}, #{fields.inspect}"
+      log.debug "Updating entry: #{where_clause.inspect}, #{fields.inspect}"
       h = fields.clone
       h[:modified]  = h[:modified].to_i if h[:modified]
       conditions, *args = *where_clause

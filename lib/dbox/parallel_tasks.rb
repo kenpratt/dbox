@@ -51,7 +51,14 @@ class ParallelTasks
               end
             end
           end
-          task.call if task
+          if task
+            begin
+              task.call
+            rescue Exception => e
+              log.error e.inspect
+              task.call
+            end
+          end
         end
       end
     end

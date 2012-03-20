@@ -182,6 +182,8 @@ module Dbox
       url = URI.parse(url)
       http = Net::HTTP.new(url.host, url.port)
       http.use_ssl = true
+      http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      http.ca_file = Dropbox::TRUSTED_CERT_FILE
 
       req = Net::HTTP::Get.new(url.request_uri)
       req["User-Agent"] = "OfficialDropboxRubySDK/#{Dropbox::SDK_VERSION}"
@@ -196,27 +198,5 @@ module Dbox
         end
       end
     end
-  end
-end
-
-# monkey-patch DropboxSession to add SSL certificate checking, since the
-# Dropbox Ruby SDK doesn't do it and doesn't have a place to hook into.
-class DropboxSession
-  private
-  def do_http(uri, auth_token, request) # :nodoc:
-    http = Net::HTTP.new(uri.host, uri.port)
-    http.use_ssl = true
-
-    # IMPORTANT: other than these two extra lines, this should be
-    # identical to the definition in dropbox_sdk.rb
-    http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-    http.ca_file = File.join(File.dirname(__FILE__), "cacert.pem")
-
-    request.add_field('Authorization', build_auth_header(auth_token))
-
-    #We use this to better understand how developers are using our SDKs.
-    request['User-Agent'] =  "OfficialDropboxRubySDK/#{Dropbox::SDK_VERSION}"
-
-    http.request(request)
   end
 end

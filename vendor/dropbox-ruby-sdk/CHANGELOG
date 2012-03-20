@@ -1,3 +1,8 @@
+1.2 (2012-1-11)
+* Adds a method to the SDK that returns the file metadata when downloading a
+  file or its thumbnail.
+* Validate server's SSL certificate against CAs in included certificate file.
+
 1.1 (2011-10-17)
 * Various bug fixes found during beta period
 * Improved documentation

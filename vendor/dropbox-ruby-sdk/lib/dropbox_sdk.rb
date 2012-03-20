@@ -11,7 +11,9 @@ module Dropbox
     WEB_SERVER = "www.dropbox.com"
 
     API_VERSION = 1
-    SDK_VERSION = "1.1"
+    SDK_VERSION = "1.2"
+
+    TRUSTED_CERT_FILE = File.join(File.dirname(__FILE__), 'trusted-certs.crt')
 end
 
 # DropboxSession is responsible for holding OAuth information.  It knows how to take your consumer key and secret
@@ -19,6 +21,8 @@ end
 # DropboxClient after its been authorized.
 class DropboxSession
 
+    # * consumer_key - Your Dropbox application's "app key".
+    # * consumer_secret - Your Dropbox application's "app secret".
     def initialize(consumer_key, consumer_secret)
         @consumer_key = consumer_key
         @consumer_secret = consumer_secret
@@ -30,14 +34,27 @@ class DropboxSession
 
     def do_http(uri, auth_token, request) # :nodoc:
         http = Net::HTTP.new(uri.host, uri.port)
+
         http.use_ssl = true
+        enable_cert_checking(http)
+        http.ca_file = Dropbox::TRUSTED_CERT_FILE
 
         request.add_field('Authorization', build_auth_header(auth_token))
 
         #We use this to better understand how developers are using our SDKs.
         request['User-Agent'] =  "OfficialDropboxRubySDK/#{Dropbox::SDK_VERSION}"
 
-        http.request(request)
+        begin
+            http.request(request)
+        rescue OpenSSL::SSL::SSLError => e
+            raise DropboxError.new("SSL error connecting to Dropbox.  " +
+                                   "There may be a problem with the set of certificates in \"#{Dropbox::TRUSTED_CERT_FILE}\".  " +
+                                   e)
+        end
+    end
+
+    def enable_cert_checking(http)
+        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
     end
 
     def build_auth_header(token) # :nodoc:
@@ -272,10 +289,10 @@ class DropboxNotModified < DropboxError
 end
 
 # This is the Dropbox Client API you'll be working with most often.  You need to give it
-# a DropboxSession which has already been authorize, or which it can authorize.
+# a DropboxSession which has already been authorized, or which it can authorize.
 class DropboxClient
 
-    # Initialize a new DropboxClient.  You need to get it a session which either has been authorized. See
+    # Initialize a new DropboxClient.  You need to give it a session which has been authorized. See
     # documentation on DropboxSession for how to authorize it.
     def initialize(session, root="app_folder", locale=nil)
         session.get_access_token
@@ -325,7 +342,6 @@ class DropboxClient
             raise DropboxError.new("Unable to parse JSON response", response)
         end
     end
-
 
     # Returns account info in a Hash object
     #
@@ -393,14 +409,61 @@ class DropboxClient
     # Returns:
     # * The file contents.
     def get_file(from_path, rev=nil)
+        response = get_file_impl(from_path, rev)
+        parse_response(response, raw=true)
+    end
+
+    # Download a file and get its metadata.
+    #
+    # Args:
+    # * from_path: The path to the file to be downloaded
+    # * rev: A previous revision value of the file to be downloaded
+    #
+    # Returns:
+    # * The file contents.
+    # * The file metadata as a hash.
+    def get_file_and_metadata(from_path, rev=nil)
+        response = get_file_impl(from_path, rev)
+        parsed_response = parse_response(response, raw=true)
+        metadata = parse_metadata(response)
+        return parsed_response, metadata
+    end
+
+    # Download a file (helper method - don't call this directly).
+    #
+    # Args:
+    # * from_path: The path to the file to be downloaded
+    # * rev: A previous revision value of the file to be downloaded
+    #
+    # Returns:
+    # * The HTTPResponse for the file download request.
+    def get_file_impl(from_path, rev=nil) # :nodoc:
         params = {}
         params['rev'] = rev.to_s if rev
 
         path = "/files/#{@root}#{format_path(from_path)}"
-        response = @session.do_get build_url(path, params, content_server=true)
-
-        parse_response(response, raw=true)
+        @session.do_get build_url(path, params, content_server=true)
     end
+    private :get_file_impl
+
+    # Parses out file metadata from a raw dropbox HTTP response.
+    #
+    # Args:
+    # * dropbox_raw_response: The raw, unparsed HTTPResponse from Dropbox.
+    #
+    # Returns:
+    # * The metadata of the file as a hash.
+    def parse_metadata(dropbox_raw_response) # :nodoc:
+        begin
+            raw_metadata = dropbox_raw_response['x-dropbox-metadata']
+            metadata = JSON.parse(raw_metadata)
+        rescue
+            raise DropboxError.new("Dropbox Server Error: x-dropbox-metadata=#{raw_metadata}",
+                                   dropbox_raw_response)
+        end
+        return metadata
+    end
+    private :parse_metadata
 
     # Copy a file or folder to a new location.
     #
@@ -525,14 +588,14 @@ class DropboxClient
     # * query: The query to search on (3 character minimum)
     # * file_limit: The maximum number of file entries to return/
     #   If the number of files exceeds this
-    #   limit, an exception is raised. The server will return at max 10,000
+    #   limit, an exception is raised. The server will return at max 1,000
     # * include_deleted: Whether to include deleted files in search results
     #
     # Returns:
     # * A Hash object with a list the metadata of the file or folders matching query
     #   inside path.  For a detailed description of what this call returns, visit:
     #   https://www.dropbox.com/developers/docs#search
-    def search(path, query, file_limit=10000, include_deleted=false)
+    def search(path, query, file_limit=1000, include_deleted=false)
         params = {
             'query' => query,
             'file_limit' => file_limit.to_s,
@@ -634,6 +697,36 @@ class DropboxClient
     # Returns:
     # * The thumbnail data
     def thumbnail(from_path, size='large')
+        response = thumbnail_impl(from_path, size)
+        parse_response(response, raw=true)
+    end
+
+    # Download a thumbnail for an image alongwith the image's metadata.
+    #
+    # Arguments:
+    # * from_path: The path to the file to be thumbnailed.
+    # * size: A string describing the desired thumbnail size. See thumbnail()
+    #   for details.
+    # Returns:
+    # * The thumbnail data
+    # * The metadata for the image as a hash
+    def thumbnail_and_metadata(from_path, size='large')
+        response = thumbnail_impl(from_path, size)
+        parsed_response = parse_response(response, raw=true)
+        metadata = parse_metadata(response)
+        return parsed_response, metadata
+    end
+
+    # Download a thumbnail (helper method - don't call this directly).
+    #
+    # Args:
+    # * from_path: The path to the file to be thumbnailed.
+    # * size: A string describing the desired thumbnail size. See thumbnail()
+    #   for details.
+    #
+    # Returns:
+    # * The HTTPResponse for the thumbnail request.
+    def thumbnail_impl(from_path, size='large') # :nodoc:
         from_path = format_path(from_path, false)
 
         raise DropboxError.new("size must be small medium or large. (not '#{size})") unless ['small','medium','large'].include?(size)
@@ -644,9 +737,9 @@ class DropboxClient
 
         url = build_url("/thumbnails/#{@root}#{from_path}", params, content_server=true)
 
-        response = @session.do_get url
-        parse_response(response, raw=true)
+        @session.do_get url
     end
+    private :thumbnail_impl
 
     def build_url(url, params=nil, content_server=false) # :nodoc:
         port = 443

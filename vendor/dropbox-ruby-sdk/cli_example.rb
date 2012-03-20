@@ -18,7 +18,7 @@ ACCESS_TYPE = :app_folder #The two valid values here are :app_folder and :dropbo
                           #https://www.dropbox.com/developers/apps
 
 class DropboxCLI
-    LOGIN_REQUIRED = %w{put get cp mv rm ls mkdir info logout search}
+    LOGIN_REQUIRED = %w{put get cp mv rm ls mkdir info logout search thumbnail}
 
     def initialize
         if APP_KEY == '' or APP_SECRET == ''
@@ -129,7 +129,9 @@ class DropboxCLI
             puts "error: File #{dest} already exists."
         else
             src = clean_up(command[1])
-            out = @client.get_file('/' + src)
+            out,metadata = @client.get_file_and_metadata('/' + src)
+            puts "Metadata:"
+            pp metadata
             open(dest, 'w'){|f| f.puts out }
             puts "wrote file #{dest}."
         end
@@ -139,9 +141,16 @@ class DropboxCLI
         pp @client.file_create_folder(command[1])
     end
 
+    # Example:
+    # > thumbnail pic1.jpg ~/pic1-local.jpg large
     def thumbnail(command)
-        command[2] ||= 'small'
-        pp @client.thumbnail(command[1], command[2])
+        dest = command[2]
+        command[3] ||= 'small'
+        out,metadata = @client.thumbnail_and_metadata(command[1], command[3])
+        puts "Metadata:"
+        pp metadata
+        open(dest, 'w'){|f| f.puts out }
+        puts "wrote thumbnail#{dest}."
     end
 
     def cp(command)

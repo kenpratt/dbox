@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = "dbox"
-  s.version = "0.6.5"
+  s.version = "0.6.6"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Ken Pratt"]
-  s.date = "2012-02-03"
+  s.date = "2012-03-21"
   s.description = "An easy-to-use Dropbox client with fine-grained control over syncs."
   s.email = "ken@kenpratt.net"
   s.executables = ["dbox"]
@@ -29,7 +29,6 @@ Gem::Specification.new do |s|
     "dbox.gemspec",
     "lib/dbox.rb",
     "lib/dbox/api.rb",
-    "lib/dbox/cacert.pem",
     "lib/dbox/database.rb",
     "lib/dbox/db.rb",
     "lib/dbox/loggable.rb",
@@ -46,12 +45,13 @@ Gem::Specification.new do |s|
     "vendor/dropbox-ruby-sdk/dropbox_controller.rb",
     "vendor/dropbox-ruby-sdk/gemspec.rb",
     "vendor/dropbox-ruby-sdk/lib/dropbox_sdk.rb",
+    "vendor/dropbox-ruby-sdk/lib/trusted-certs.crt",
     "vendor/dropbox-ruby-sdk/web_file_browser.rb"
   ]
   s.homepage = "http://github.com/kenpratt/dbox"
   s.licenses = ["MIT"]
   s.require_paths = ["lib"]
-  s.rubygems_version = "1.8.11"
+  s.rubygems_version = "1.8.16"
   s.summary = "Dropbox made easy."
 
   if s.respond_to? :specification_version then

@@ -1,6 +1,7 @@
-== 0.6.6 / ?
+== 0.6.6 / 2012-03-21
   * Minor Enhancements
     * Upgraded to v1.2 of Ruby Dropbox SDK, switched to their new SSL support.
+    * Don't retry failed tasks outside of rescue block in ParallelTasks implementation.
 
 == 0.6.5 / 2012-02-03
   * Bug Fixes

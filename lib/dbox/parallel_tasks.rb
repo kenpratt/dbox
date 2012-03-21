@@ -56,7 +56,6 @@ class ParallelTasks
               task.call
             rescue Exception => e
               log.error e.inspect
-              task.call
             end
           end
         end

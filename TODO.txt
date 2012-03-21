@@ -1,3 +1,7 @@
+* Look into occasional hanging on pull operations.
+* Look into memory leak when syncing a large amount of files.
+* Look into 10000 file limit on metadata operations.
+* Look into occasional creation of (1) conflict files when there isn't a conflict (timestamps changing, maybe?).
 * Make Dbox case insentive on case sensitive filesystems, as Dropbox is case insensitive.
 * Refactor threading in change detection in pull to use ParallelTasks?
 * Saving SQLite db changes dir timestamp -- try to preserve it?

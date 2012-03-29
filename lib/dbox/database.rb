@@ -45,6 +45,7 @@ module Dbox
       @local_path = local_path
       FileUtils.mkdir_p(local_path)
       @db = SQLite3::Database.new(File.join(local_path, DB_FILENAME))
+      @db.busy_timeout(1000)
       @db.trace {|sql| log.debug sql.strip }
       @db.execute("PRAGMA foreign_keys = ON;")
       ensure_schema_exists

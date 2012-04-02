@@ -517,9 +517,7 @@ module Dbox
       end
 
       def upload
-        File.open(local_path) do |f|
-          api.put_file(remote_path, f)
-        end
+        api.put_file(remote_path, local_path)
         force_metadata_update_from_server
       end
     end

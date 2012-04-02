@@ -1,3 +1,7 @@
+== 0.6.8 / 2012-04-02
+  * Minor Enhancements
+    * Added retries after receiving HTTPServiceUnavailable from Dropbox API.
+
 == 0.6.7 / 2012-03-29
   * Minor Enhancements
     * Added timeout to SQLite operations to help with threads competing for db operations.

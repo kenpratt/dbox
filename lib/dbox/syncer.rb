@@ -620,12 +620,10 @@ module Dbox
       def upload_file(file)
         local_path = relative_to_local_path(file[:path])
         remote_path = relative_to_remote_path(file[:path])
-        File.open(local_path) do |f|
-          db_entry = database.find_by_path(file[:path])
-          last_revision = db_entry ? db_entry[:revision] : nil
-          res = api.put_file(remote_path, f, last_revision)
-          process_basic_remote_props(res)
-        end
+        db_entry = database.find_by_path(file[:path])
+        last_revision = db_entry ? db_entry[:revision] : nil
+        res = api.put_file(remote_path, local_path, last_revision)
+        process_basic_remote_props(res)
       end
 
       def force_metadata_update_from_server(entry)

@@ -1,4 +1,7 @@
 module Dbox
+  NUM_TRIES = 3
+  TIME_BETWEEN_TRIES = 3 # in seconds
+
   class ConfigurationError < RuntimeError; end
   class ServerError < RuntimeError; end
   class RemoteMissing < RuntimeError; end
@@ -62,16 +65,24 @@ module Dbox
       @client = DropboxClient.new(@session, 'dropbox')
     end
 
-    def run(path)
+    def run(path, tries = NUM_TRIES, &proc)
       begin
-        res = yield
+        res = proc.call
         handle_response(path, res) { raise RuntimeError, "Unexpected result: #{res.inspect}" }
       rescue DropboxNotModified => e
         :not_modified
       rescue DropboxAuthError => e
         raise e
       rescue DropboxError => e
-        handle_response(path, e.http_response) { raise ServerError, "Server error -- might be a hiccup, please try your request again (#{e.message})" }
+        if e.http_response.kind_of?(Net::HTTPServiceUnavailable) && tries > 0
+          log.info "Encountered 503 on #{path} (likely rate limiting). Sleeping #{TIME_BETWEEN_TRIES}s and trying again."
+          # TODO check for "Retry-After" header and use that for sleep instead of TIME_BETWEEN_TRIES
+          log.debug "Headers: #{e.http_response.to_hash.inspect}"
+          sleep TIME_BETWEEN_TRIES
+          run(path, tries - 1, &proc)
+        else
+          handle_response(path, e.http_response) { raise ServerError, "Server error -- might be a hiccup, please try your request again (#{e.message})" }
+        end
       end
     end
 
@@ -95,8 +106,8 @@ module Dbox
     end
 
     def metadata(path = "/", hash = nil, list=true)
-      log.debug "Fetching metadata for #{path}"
       run(path) do
+        log.debug "Fetching metadata for #{path}"
         res = @client.metadata(path, 10000, list, hash)
         log.debug res.inspect
         res
@@ -104,8 +115,8 @@ module Dbox
     end
 
     def create_dir(path)
-      log.info "Creating #{path}"
       run(path) do
+        log.info "Creating #{path}"
         begin
           @client.file_create_folder(path)
         rescue DropboxError => e
@@ -119,17 +130,19 @@ module Dbox
     end
 
     def delete_dir(path)
-      log.info "Deleting #{path}"
       run(path) do
+        log.info "Deleting #{path}"
         @client.file_delete(path)
       end
     end
 
     def get_file(path, file_obj, stream=false)
-      log.info "Downloading #{path}"
       unless stream
         # just download directly using the get_file API
-        res = run(path) { @client.get_file(path) }
+        res = run(path) do
+          log.info "Downloading #{path}"
+          @client.get_file(path)
+        end
         if res.kind_of?(String)
           file_obj << res
           true
@@ -142,6 +155,7 @@ module Dbox
         res = run(path) { @client.media(path) }
         url = res[:url] if res && res.kind_of?(Hash)
         if url
+          log.info "Downloading #{path}"
           streaming_download(url, file_obj)
         else
           get_file(path, file_obj, false)
@@ -149,23 +163,23 @@ module Dbox
       end
     end
 
-    def put_file(path, file_obj, previous_revision=nil)
-      log.info "Uploading #{path}"
+    def put_file(path, local_path, previous_revision=nil)
       run(path) do
-        @client.put_file(path, file_obj, false, previous_revision)
+        log.info "Uploading #{path}"
+        File.open(local_path, "r") {|f| @client.put_file(path, f, false, previous_revision) }
       end
     end
 
     def delete_file(path)
-      log.info "Deleting #{path}"
       run(path) do
+        log.info "Deleting #{path}"
         @client.file_delete(path)
       end
     end
 
     def move(old_path, new_path)
-      log.info "Moving #{old_path} to #{new_path}"
       run(old_path) do
+        log.info "Moving #{old_path} to #{new_path}"
         begin
           @client.file_move(old_path, new_path)
         rescue DropboxError => e

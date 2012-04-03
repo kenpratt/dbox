@@ -1,6 +1,6 @@
 module Dbox
   class Syncer
-    MAX_PARALLEL_DBOX_OPS = 5
+    MAX_PARALLEL_DBOX_OPS = 3
     MIN_BYTES_TO_STREAM_DOWNLOAD = 1024 * 100 # 100kB
 
     include Loggable

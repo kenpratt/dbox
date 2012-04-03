@@ -1,6 +1,7 @@
 == 0.6.8 / 2012-04-02
   * Minor Enhancements
     * Added retries after receiving HTTPServiceUnavailable from Dropbox API.
+    * Turned number of threads down to 3 (more than that triggers Dropbox rate limiting after a while).
 
 == 0.6.7 / 2012-03-29
   * Minor Enhancements

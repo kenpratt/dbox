@@ -377,7 +377,14 @@ describe Dbox do
       Dbox.push(@local).should eql(:created => [], :deleted => [], :updated => ["hello.txt"], :failed => [])
 
       make_file "#{@alternate}/hello.txt"
-      Dbox.push(@alternate).should eql(:created => [], :deleted => [], :updated => [], :conflicts => [{:original => "hello.txt", :renamed => "hello (1).txt"}], :failed => [])
+      res = Dbox.push(@alternate)
+      res[:created].should eql([])
+      res[:updated].should eql([])
+      res[:deleted].should eql([])
+      res[:failed].should eql([])
+      res[:conflicts].size.should eql(1)
+      res[:conflicts][0][:original].should eql("hello.txt")
+      res[:conflicts][0][:renamed].should match(/hello \(.* conflicted copy\).txt/)
     end
   end
 

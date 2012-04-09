@@ -69,6 +69,12 @@ class ParallelTasks
 
   def finish
     @done_making_tasks = true
-    @workers.each {|t| t.join }
+    begin
+      @workers.each {|t| t.join }
+    rescue Exception => e
+      log.error "Error waiting for workers to complete tasks: #{e.inspect}"
+      @workers.each {|t| t.kill }
+      raise e
+    end
   end
 end

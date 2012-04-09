@@ -1,3 +1,7 @@
+== 0.6.9 / 2012-04-09
+  * Minor Enhancements
+    * Added cleanup of worker threads on abnormal termination.
+
 == 0.6.8 / 2012-04-02
   * Minor Enhancements
     * Added retries after receiving HTTPServiceUnavailable from Dropbox API.

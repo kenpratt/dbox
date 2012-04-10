@@ -209,7 +209,7 @@ module Dbox
                     changelist[:conflicts] << res[1]
                   end
                 rescue Exception => e
-                  log.error "Error while downloading #{c[:path]}: #{e.inspect}"
+                  log.error "Error while downloading #{c[:path]}: #{e.inspect}\n#{e.backtrace.join("\n")}"
                   parent_ids_of_failed_entries << c[:parent_id]
                   changelist[:failed] << { :operation => :create, :path => c[:path], :error => e }
                 end
@@ -232,7 +232,7 @@ module Dbox
                     changelist[:conflicts] << res[1]
                   end
                 rescue Exception => e
-                  log.error "Error while downloading #{c[:path]}: #{e.inspect}"
+                  log.error "Error while downloading #{c[:path]}: #{e.inspect}\n#{e.backtrace.join("\n")}"
                   parent_ids_of_failed_entries << c[:parent_id]
                   changelist[:failed] << { :operation => :create, :path => c[:path], :error => e }
                 end
@@ -242,6 +242,9 @@ module Dbox
             c[:is_dir] ? delete_dir(c) : delete_file(c)
             database.delete_entry_by_path(c[:path])
             changelist[:deleted] << c[:path]
+          when :failed
+            parent_ids_of_failed_entries << c[:parent_id]
+            changelist[:failed] << { :operation => c[:operation], :path => c[:path], :error => c[:error] }
           else
             raise(RuntimeError, "Unknown operation type: #{op}")
           end
@@ -324,8 +327,8 @@ module Dbox
               clone_api_into_current_thread()
               Thread.current[:out] = calculate_changes(dir, operation)
             rescue Exception => e
-              log.error "Error while caclulating changes #{dir.inspect}: #{operation}"
-              log.error e.inspect
+              log.error "Error while caclulating changes for #{operation} on #{dir[:path]}: #{e.inspect}\n#{e.backtrace.join("\n")}"
+              Thread.current[:out] = [[:failed, dir.merge({ :operation => operation, :error => e })]]
             end
           end
         end
@@ -473,7 +476,7 @@ module Dbox
                     changelist[:conflicts] << { :original => c[:path], :renamed => res[:path] }
                   end
                 rescue Exception => e
-                  log.error "Error while uploading #{c[:path]}: #{e.inspect}"
+                  log.error "Error while uploading #{c[:path]}: #{e.inspect}\n#{e.backtrace.join("\n")}"
                   changelist[:failed] << { :operation => :create, :path => c[:path], :error => e }
                 end
               end
@@ -502,7 +505,7 @@ module Dbox
                     changelist[:conflicts] << { :original => c[:path], :renamed => res[:path] }
                   end
                 rescue Exception => e
-                  log.error "Error while uploading #{c[:path]}: #{e.inspect}"
+                  log.error "Error while uploading #{c[:path]}: #{e.inspect}\n#{e.backtrace.join("\n")}"
                   changelist[:failed] << { :operation => :update, :path => c[:path], :error => e }
                 end
               end
@@ -523,10 +526,12 @@ module Dbox
                 database.delete_entry_by_path(c[:path])
                 changelist[:deleted] << c[:path]
               rescue Exception => e
-                log.error "Error while deleting #{c[:path]}: #{e.inspect}"
+                log.error "Error while deleting #{c[:path]}: #{e.inspect}\n#{e.backtrace.join("\n")}"
                 changelist[:failed] << { :operation => :delete, :path => c[:path], :error => e }
               end
             end
+          when :failed
+            changelist[:failed] << { :operation => c[:operation], :path => c[:path], :error => c[:error] }
           else
             raise(RuntimeError, "Unknown operation type: #{op}")
           end

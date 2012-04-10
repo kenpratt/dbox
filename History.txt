@@ -1,3 +1,7 @@
+== 0.6.10 / 2012-04-10
+  * Minor Enhancements
+    * Improved error handling on calculating changes on pull.
+
 == 0.6.9 / 2012-04-09
   * Minor Enhancements
     * Added cleanup of worker threads on abnormal termination.

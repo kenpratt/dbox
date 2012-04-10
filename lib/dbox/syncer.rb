@@ -324,7 +324,8 @@ module Dbox
               clone_api_into_current_thread()
               Thread.current[:out] = calculate_changes(dir, operation)
             rescue Exception => e
-              log.error "Error while caclulating changes #{dir}: #{operation}"
+              log.error "Error while caclulating changes #{dir.inspect}: #{operation}"
+              log.error e.inspect
             end
           end
         end

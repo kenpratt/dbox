@@ -47,6 +47,14 @@ module Dbox
     Dbox::Syncer.pull(local_path)
   end
 
+  def self.clone_or_pull(remote_path, local_path)
+    if exists?(local_path)
+      pull(local_path)
+    else
+      clone(remote_path, local_path)
+    end
+  end
+
   def self.push(local_path)
     log.debug "Pushing (local: #{local_path})"
     local_path = clean_local_path(local_path)

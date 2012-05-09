@@ -219,6 +219,28 @@ describe Dbox do
     end
   end
 
+  describe "#clone_or_pull" do
+    it "creates the local directory" do
+      Dbox.create(@remote, @local)
+      rm_rf @local
+      @local.should_not exist
+      Dbox.clone_or_pull(@remote, @local).should eql(:created => [], :deleted => [], :updated => [""], :failed => [])
+      @local.should exist
+    end
+
+    it "should fail if the remote does not exist" do
+      expect { Dbox.clone_or_pull(@remote, @local) }.to raise_error(Dbox::RemoteMissing)
+      @local.should_not exist
+    end
+
+    it "shold be able to pull changes on existing repo" do
+      Dbox.create(@remote, @local)
+      @local.should exist
+      Dbox.clone_or_pull(@remote, @local).should eql(:created => [], :deleted => [], :updated => [], :failed => [])
+      @local.should exist
+    end
+  end
+
   describe "#push" do
     it "should fail if the local dir is missing" do
       expect { Dbox.push(@local) }.to raise_error(Dbox::DatabaseError)

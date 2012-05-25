@@ -84,6 +84,17 @@ module Dbox
     Dbox::Database.exists?(local_path)
   end
 
+  def self.delete(remote_path, local_path = nil)
+    log.debug "Deleting (remote: #{remote_path})"
+    remote_path = clean_remote_path(remote_path)
+    Dbox::Syncer.api.delete_dir(remote_path)
+    if local_path
+      local_path = clean_local_path(local_path)
+      log.debug "Deleting (local_path: #{local_path})"
+      FileUtils.rm_rf(local_path) if File.exists?(local_path)
+    end
+  end
+
   private
 
   def self.clean_remote_path(path)

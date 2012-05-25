@@ -533,4 +533,21 @@ describe Dbox do
       Dbox.pull(@alternate).should eql(:created => ["subdir", "subdir/one.txt"], :deleted => [], :updated => [""], :failed => [])
     end
   end
+
+  describe "#delete" do
+    it "should delete the remote directory" do
+      Dbox.create(@remote, @local)
+      rm_rf @local
+      Dbox.delete(@remote)
+      expect { Dbox.clone(@remote, @local) }.to raise_error(Dbox::RemoteMissing)
+    end
+
+    it "should delete the local directory if given" do
+      Dbox.create(@remote, @local)
+      @local.should exist
+      Dbox.delete(@remote, @local)
+      @local.should_not exist
+      expect { Dbox.clone(@remote, @local) }.to raise_error(Dbox::RemoteMissing)
+    end
+  end
 end

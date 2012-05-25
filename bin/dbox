@@ -16,6 +16,7 @@ Commands:
   push [<local_path>]                   Push changes to Dropbox
   sync [<local_path>]                   Sync changes to Dropbox
   move <new_remote_path> [<local_path>] Move the remote Dropbox folder to a new location
+  delete <remote_path> [<local_path>]   Delete a Dropbox folder (local path optional, it will be deleted too if provided)
   clone_or_pull <remote_path> [<local_path>] Clone an existing Dropbox folder, or pull if it already exists locally
 
 Environment varables needed for everything:
@@ -41,9 +42,9 @@ args = ARGV[1..-1]
 case command
 when "authorize"
   Dbox.authorize
-when "create", "clone", "clone_or_pull"
+when "create", "clone", "clone_or_pull", "delete"
   unless args.size >= 1
-    puts "Error: Please provide a remote path to clone"
+    puts "Error: Please provide a remote path"
     print_usage_and_quit
   end
 

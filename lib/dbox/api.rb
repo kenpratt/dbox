@@ -110,6 +110,7 @@ module Dbox
         log.debug "Fetching metadata for #{path}"
         res = @client.metadata(path, 10000, list, hash)
         log.debug res.inspect
+        raise Dbox::RemoteMissing, "#{path} has been deleted on Dropbox" if res["is_deleted"]
         res
       end
     end

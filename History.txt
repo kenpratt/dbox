@@ -1,4 +1,4 @@
-== ? / ?
+== 0.6.12 / 2012-06-01
   * Minor Enhancements
     * Added clone_or_pull operation for if you aren't sure if the local folder exists yet or not.
     * Added delete operation for deleting a remote Dropbox folder as well as the local folder if it exists.

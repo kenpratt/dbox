@@ -6,7 +6,7 @@ require "dbox"
 # usage line
 def usage
   <<_EOF
-Usage: dbox <commond> [<args>]
+Usage: dbox <command> [<args>]
 
 Commands:
   authorize                             Generate auth keys
@@ -42,7 +42,7 @@ args = ARGV[1..-1]
 case command
 when "authorize"
   Dbox.authorize
-when "create", "clone", "clone_or_pull", "delete"
+when "create", "clone", "clone_or_pull"
   unless args.size >= 1
     puts "Error: Please provide a remote path"
     print_usage_and_quit
@@ -73,6 +73,19 @@ when "move"
 
   # default to current directory
   local_path = args[1] || "."
+
+  Dbox.send(command, remote_path, local_path)
+when "delete"
+  unless args.size >= 1
+    puts "Error: Please provide a remote path"
+    print_usage_and_quit
+  end
+
+  remote_path = args[0]
+
+  # default to creating a directory inside the current directory with
+  # the same name of the directory being created/cloned
+  local_path = args[1] || remote_path.split("/").last
 
   Dbox.send(command, remote_path, local_path)
 else

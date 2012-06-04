@@ -1,3 +1,7 @@
+== 0.6.13 / 2012-06-04
+  * Bug Fixes
+    * Fixed issue with dbox delete command-line util.
+
 == 0.6.12 / 2012-06-01
   * Minor Enhancements
     * Added clone_or_pull operation for if you aren't sure if the local folder exists yet or not.

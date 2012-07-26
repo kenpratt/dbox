@@ -1,3 +1,8 @@
+== 0.6.14 / 2012-07-26
+  * Minor Enhancements
+    * Made concurrency adjustable via DROPBOX_CONCURRENCY environment variable.
+    * Updated to latest Dropbox Ruby SDK.
+
 == 0.6.13 / 2012-06-04
   * Bug Fixes
     * Fixed issue with dbox delete command-line util.

@@ -1,6 +1,6 @@
 module Dbox
   class Syncer
-    MAX_PARALLEL_DBOX_OPS = 3
+    DEFAULT_CONCURRENCY = 2
     MIN_BYTES_TO_STREAM_DOWNLOAD = 1024 * 100 # 100kB
 
     include Loggable
@@ -34,6 +34,11 @@ module Dbox
 
     def self.api
       @@_api ||= API.connect
+    end
+
+    def self.concurrency
+      n = ENV["DROPBOX_CONCURRENCY"].to_i
+      n > 0 ? n : DEFAULT_CONCURRENCY
     end
 
     class Operation
@@ -184,7 +189,7 @@ module Dbox
         changelist = { :created => [], :deleted => [], :updated => [], :failed => [] }
 
         # spin up a parallel task queue
-        ptasks = ParallelTasks.new(MAX_PARALLEL_DBOX_OPS - 1) { clone_api_into_current_thread() }
+        ptasks = ParallelTasks.new(Syncer.concurrency) { clone_api_into_current_thread() }
         ptasks.start
 
         changes.each do |op, c|
@@ -445,7 +450,7 @@ module Dbox
         changelist = { :created => [], :deleted => [], :updated => [], :failed => [] }
 
         # spin up a parallel task queue
-        ptasks = ParallelTasks.new(MAX_PARALLEL_DBOX_OPS - 1) { clone_api_into_current_thread() }
+        ptasks = ParallelTasks.new(Syncer.concurrency) { clone_api_into_current_thread() }
         ptasks.start
 
         changes.each do |op, c|

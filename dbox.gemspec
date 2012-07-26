@@ -5,7 +5,7 @@
 
 Gem::Specification.new do |s|
   s.name = "dbox"
-  s.version = "0.6.14"
+  s.version = "0.6.15"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Ken Pratt"]
@@ -38,19 +38,18 @@ Gem::Specification.new do |s|
     "sample_polling_script.rb",
     "spec/dbox_spec.rb",
     "spec/spec_helper.rb",
-    "vendor/dropbox-ruby-sdk-1.3.1/.search_cache.rb.swp",
-    "vendor/dropbox-ruby-sdk-1.3.1/CHANGELOG",
-    "vendor/dropbox-ruby-sdk-1.3.1/LICENSE",
-    "vendor/dropbox-ruby-sdk-1.3.1/README",
-    "vendor/dropbox-ruby-sdk-1.3.1/cli_example.rb",
-    "vendor/dropbox-ruby-sdk-1.3.1/copy_between_accounts.rb",
-    "vendor/dropbox-ruby-sdk-1.3.1/dropbox_controller.rb",
-    "vendor/dropbox-ruby-sdk-1.3.1/gemspec.rb",
-    "vendor/dropbox-ruby-sdk-1.3.1/lib/dropbox_sdk.rb",
-    "vendor/dropbox-ruby-sdk-1.3.1/lib/trusted-certs.crt",
-    "vendor/dropbox-ruby-sdk-1.3.1/search_cache.json",
-    "vendor/dropbox-ruby-sdk-1.3.1/search_cache.rb",
-    "vendor/dropbox-ruby-sdk-1.3.1/web_file_browser.rb"
+    "vendor/dropbox-ruby-sdk/CHANGELOG",
+    "vendor/dropbox-ruby-sdk/LICENSE",
+    "vendor/dropbox-ruby-sdk/README",
+    "vendor/dropbox-ruby-sdk/cli_example.rb",
+    "vendor/dropbox-ruby-sdk/copy_between_accounts.rb",
+    "vendor/dropbox-ruby-sdk/dropbox_controller.rb",
+    "vendor/dropbox-ruby-sdk/gemspec.rb",
+    "vendor/dropbox-ruby-sdk/lib/dropbox_sdk.rb",
+    "vendor/dropbox-ruby-sdk/lib/trusted-certs.crt",
+    "vendor/dropbox-ruby-sdk/search_cache.json",
+    "vendor/dropbox-ruby-sdk/search_cache.rb",
+    "vendor/dropbox-ruby-sdk/web_file_browser.rb"
   ]
   s.homepage = "http://github.com/kenpratt/dbox"
   s.licenses = ["MIT"]

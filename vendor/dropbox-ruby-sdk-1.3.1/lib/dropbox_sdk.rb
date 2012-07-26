@@ -5,13 +5,13 @@ require 'cgi'
 require 'json'
 require 'yaml'
 
-module Dropbox
+module Dropbox # :nodoc:
     API_SERVER = "api.dropbox.com"
     API_CONTENT_SERVER = "api-content.dropbox.com"
     WEB_SERVER = "www.dropbox.com"
 
     API_VERSION = 1
-    SDK_VERSION = "1.2"
+    SDK_VERSION = "1.3.1"
 
     TRUSTED_CERT_FILE = File.join(File.dirname(__FILE__), 'trusted-certs.crt')
 end
@@ -125,6 +125,7 @@ class DropboxSession
             raise DropboxAuthError.new("#{error_message_prefix}  Server returned #{response.code}: #{response.message}.", response)
         end
         parts = CGI.parse(response.body)
+
         if !parts.has_key? "oauth_token" and parts["oauth_token"].length != 1
             raise DropboxAuthError.new("Invalid response from #{url_end}: missing \"oauth_token\" parameter: #{response.body}", response)
         end
@@ -244,7 +245,7 @@ end
 
 
 # A class that represents either an OAuth request token or an OAuth access token.
-class OAuthToken
+class OAuthToken # :nodoc:
     def initialize(key, secret)
         @key = key
         @secret = secret
@@ -339,14 +340,14 @@ class DropboxClient
         begin
             return JSON.parse(response.body)
         rescue JSON::ParserError
-            raise DropboxError.new("Unable to parse JSON response", response)
+            raise DropboxError.new("Unable to parse JSON response: #{response.body}", response)
         end
     end
 
     # Returns account info in a Hash object
     #
     # For a detailed description of what this call returns, visit:
-    # https://www.dropbox.com/developers/docs#account-info
+    # https://www.dropbox.com/developers/reference/api#account-info
     def account_info()
         response = @session.do_get build_url("/account/info")
         parse_response(response)
@@ -478,7 +479,7 @@ class DropboxClient
     # Returns:
     # * A hash with the metadata of the new copy of the file or folder.
     #   For a detailed description of what this call returns, visit:
-    #   https://www.dropbox.com/developers/docs#fileops-copy
+    #   https://www.dropbox.com/developers/reference/api#fileops-copy
     def file_copy(from_path, to_path)
         params = {
             "root" => @root,
@@ -497,7 +498,7 @@ class DropboxClient
     # Returns:
     # *  A hash with the metadata of the newly created folder.
     #    For a detailed description of what this call returns, visit:
-    #    https://www.dropbox.com/developers/docs#fileops-create-folder
+    #    https://www.dropbox.com/developers/reference/api#fileops-create-folder
     def file_create_folder(path)
         params = {
             "root" => @root,
@@ -516,7 +517,7 @@ class DropboxClient
     # Returns:
     # *  A Hash with the metadata of file just deleted.
     #    For a detailed description of what this call returns, visit:
-    #    https://www.dropbox.com/developers/docs#fileops-delete
+    #    https://www.dropbox.com/developers/reference/api#fileops-delete
     def file_delete(path)
         params = {
             "root" => @root,
@@ -536,7 +537,7 @@ class DropboxClient
     # Returns:
     # *  A Hash with the metadata of file or folder just moved.
     #    For a detailed description of what this call returns, visit:
-    #    https://www.dropbox.com/developers/docs#fileops-delete
+    #    https://www.dropbox.com/developers/reference/api#fileops-delete
     def file_move(from_path, to_path)
         params = {
             "root" => @root,
@@ -556,23 +557,29 @@ class DropboxClient
     # * file_limit: The maximum number of file entries to return within
     #   a folder. If the number of files in the directory exceeds this
     #   limit, an exception is raised. The server will return at max
-    #   10,000 files within a folder.
+    #   25,000 files within a folder.
     # * hash: Every directory listing has a hash parameter attached that
     #   can then be passed back into this function later to save on
     #   bandwidth. Rather than returning an unchanged folder's contents, if
     #   the hash matches a DropboxNotModified exception is raised.
+    # * rev: Optional. The revision of the file to retrieve the metadata for.
+    #   This parameter only applies for files. If omitted, you'll receive
+    #   the most recent revision metadata.
+    # * include_deleted: Specifies whether to include deleted files in metadata results.
     #
     # Returns:
     # * A Hash object with the metadata of the file or folder (and contained files if
     #   appropriate).  For a detailed description of what this call returns, visit:
-    #   https://www.dropbox.com/developers/docs#metadata
-    def metadata(path, file_limit=10000, list=true, hash=nil)
+    #   https://www.dropbox.com/developers/reference/api#metadata
+    def metadata(path, file_limit=25000, list=true, hash=nil, rev=nil, include_deleted=false)
         params = {
             "file_limit" => file_limit.to_s,
-            "list" => list.to_s
+            "list" => list.to_s,
+            "include_deleted" => include_deleted.to_s
         }
 
         params["hash"] = hash if hash
+        params["rev"] = rev if rev
 
         response = @session.do_get build_url("/metadata/#{@root}#{format_path(path)}", params=params)
         if response.kind_of? Net::HTTPRedirection
@@ -594,7 +601,7 @@ class DropboxClient
     # Returns:
     # * A Hash object with a list the metadata of the file or folders matching query
     #   inside path.  For a detailed description of what this call returns, visit:
-    #   https://www.dropbox.com/developers/docs#search
+    #   https://www.dropbox.com/developers/reference/api#search
     def search(path, query, file_limit=1000, include_deleted=false)
         params = {
             'query' => query,
@@ -618,7 +625,7 @@ class DropboxClient
     # * A Hash object with a list of the metadata of the all the revisions of
     #   all matches files (up to rev_limit entries)
     #   For a detailed description of what this call returns, visit:
-    #   https://www.dropbox.com/developers/docs#revisions
+    #   https://www.dropbox.com/developers/reference/api#revisions
     def revisions(path, rev_limit=1000)
 
         params = {
@@ -639,7 +646,7 @@ class DropboxClient
     # Returns:
     # * A Hash object with a list the metadata of the file or folders restored
     #   For a detailed description of what this call returns, visit:
-    #   https://www.dropbox.com/developers/docs#search
+    #   https://www.dropbox.com/developers/reference/api#search
     def restore(path, rev)
         params = {
             'rev' => rev.to_s
@@ -679,7 +686,7 @@ class DropboxClient
     # * A Hash object that looks like the following example:
     #      {'url': 'http://www.dropbox.com/s/m/a2mbDa2', 'expires': 'Thu, 16 Sep 2011 01:01:25 +0000'}
     #   For a detailed description of what this call returns, visit:
-    #    https://www.dropbox.com/developers/docs#share
+    #    https://www.dropbox.com/developers/reference/api#shares
     def shares(path)
         response = @session.do_get build_url("/shares/#{@root}#{format_path(path)}")
         parse_response(response)
@@ -692,7 +699,7 @@ class DropboxClient
     # * size: A string describing the desired thumbnail size. At this time,
     #   'small', 'medium', and 'large' are officially supported sizes
     #   (32x32, 64x64, and 128x128 respectively), though others may
-    #   be available. Check https://www.dropbox.com/developers/docs#thumbnails
+    #   be available. Check https://www.dropbox.com/developers/reference/api#thumbnails
     #   for more details. [defaults to large]
     # Returns:
     # * The thumbnail data
@@ -715,6 +722,60 @@ class DropboxClient
         parsed_response = parse_response(response, raw=true)
         metadata = parse_metadata(response)
         return parsed_response, metadata
+    end
+
+    # A way of letting you keep a local representation of the Dropbox folder
+    # heirarchy.  You can periodically call delta() to get a list of "delta
+    # entries", which are instructions on how to update your local state to
+    # match the server's state.
+    #
+    # Arguments:
+    # * +cursor+: On the first call, omit this argument (or pass in +nil+).  On
+    #   subsequent calls, pass in the +cursor+ string returned by the previous
+    #   call.
+    #
+    # Returns: A hash with three fields.
+    # * +entries+: A list of "delta entries" (described below)
+    # * +reset+: If +true+, you should reset local state to be an empty folder
+    #   before processing the list of delta entries.  This is only +true+ only
+    #   in rare situations.
+    # * +cursor+: A string that is used to keep track of your current state.
+    #   On the next call to delta(), pass in this value to return entries
+    #   that were recorded since the cursor was returned.
+    # * +has_more+: If +true+, then there are more entries available; you can
+    #   call delta() again immediately to retrieve those entries.  If +false+,
+    #   then wait at least 5 minutes (preferably longer) before checking again.
+    #
+    # Delta Entries: Each entry is a 2-item list of one of following forms:
+    # * [_path_, _metadata_]: Indicates that there is a file/folder at the given
+    #   path.  You should add the entry to your local state.  (The _metadata_
+    #   value is the same as what would be returned by the #metadata() call.)
+    #   * If the path refers to parent folders that don't yet exist in your
+    #     local state, create those parent folders in your local state.  You
+    #     will eventually get entries for those parent folders.
+    #   * If the new entry is a file, replace whatever your local state has at
+    #     _path_ with the new entry.
+    #   * If the new entry is a folder, check what your local state has at
+    #     _path_.  If it's a file, replace it with the new entry.  If it's a
+    #     folder, apply the new _metadata_ to the folder, but do not modify
+    #     the folder's children.
+    # * [path, +nil+]: Indicates that there is no file/folder at the _path_ on
+    #   Dropbox.  To update your local state to match, delete whatever is at
+    #   _path_, including any children (you will sometimes also get separate
+    #   delta entries for each child, but this is not guaranteed).  If your
+    #   local state doesn't have anything at _path_, ignore this entry.
+    #
+    # Remember: Dropbox treats file names in a case-insensitive but case-preserving
+    # way.  To facilitate this, the _path_ strings above are lower-cased versions of
+    # the actual path.  The _metadata_ dicts have the original, case-preserved path.
+    def delta(cursor=nil)
+        params = {}
+        if cursor
+            params['cursor'] = cursor
+        end
+
+        response = @session.do_post build_url("/delta", params)
+        parse_response(response)
     end
 
     # Download a thumbnail (helper method - don't call this directly).
@@ -741,6 +802,45 @@ class DropboxClient
     end
     private :thumbnail_impl
 
+
+    # Creates and returns a copy ref for a specific file.  The copy ref can be
+    # used to instantly copy that file to the Dropbox of another account.
+    #
+    # Args:
+    # * path: The path to the file for a copy ref to be created on.
+    #
+    # Returns:
+    # * A Hash object that looks like the following example:
+    #      {"expires"=>"Fri, 31 Jan 2042 21:01:05 +0000", "copy_ref"=>"z1X6ATl6aWtzOGq0c3g5Ng"}
+    def create_copy_ref(path)
+        path = "/copy_ref/#{@root}#{format_path(path)}"
+
+        response = @session.do_get(build_url(path, {}))
+
+        parse_response(response)
+    end
+
+    # Adds the file referenced by the copy ref to the specified path
+    #
+    # Args:
+    # * copy_ref: A copy ref string that was returned from a create_copy_ref call.
+    #   The copy_ref can be created from any other Dropbox account, or from the same account.
+    # * to_path: The path to where the file will be created.
+    #
+    # Returns:
+    # * A hash with the metadata of the new file.
+    def add_copy_ref(to_path, copy_ref)
+        path = "/fileops/copy"
+
+        params = {'from_copy_ref' => copy_ref,
+                  'to_path' => "#{format_path(to_path)}",
+                  'root' => @root}
+
+        response = @session.do_post(build_url(path, params))
+
+        parse_response(response)
+    end
+
     def build_url(url, params=nil, content_server=false) # :nodoc:
         port = 443
         host = content_server ? Dropbox::API_CONTENT_SERVER : Dropbox::API_SERVER
@@ -756,7 +856,7 @@ class DropboxClient
 
         if params
             target.query = params.collect {|k,v|
-                URI.escape(k) + "=" + URI.escape(v)
+                CGI.escape(k) + "=" + CGI.escape(v)
             }.join("&")
         end
 

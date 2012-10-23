@@ -55,18 +55,18 @@ module Dbox
       @db.execute_batch(%{
         CREATE TABLE IF NOT EXISTS metadata (
           id           integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-          remote_path  varchar(255) NOT NULL,
+          remote_path  text NOT NULL,
           version      integer NOT NULL
         );
         CREATE TABLE IF NOT EXISTS entries (
           id           integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-          path         varchar(255) UNIQUE NOT NULL,
+          path         text UNIQUE NOT NULL,
           is_dir       boolean NOT NULL,
           parent_id    integer REFERENCES entries(id) ON DELETE CASCADE,
-          local_hash   varchar(255),
-          remote_hash  varchar(255),
+          local_hash   text,
+          remote_hash  text,
           modified     datetime,
-          revision     varchar(255)
+          revision     text
         );
         CREATE INDEX IF NOT EXISTS entry_parent_ids ON entries(parent_id);
       })
@@ -82,7 +82,7 @@ module Dbox
           ALTER TABLE metadata RENAME TO metadata_old;
           CREATE TABLE metadata (
             id           integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-            remote_path  varchar(255) NOT NULL,
+            remote_path  text NOT NULL,
             version      integer NOT NULL
           );
           INSERT INTO metadata SELECT id, remote_path, version FROM metadata_old;
@@ -121,12 +121,12 @@ module Dbox
           ALTER TABLE entries RENAME TO entries_old;
           CREATE TABLE entries (
             id           integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-            path         varchar(255) UNIQUE NOT NULL,
+            path         text UNIQUE NOT NULL,
             is_dir       boolean NOT NULL,
             parent_id    integer REFERENCES entries(id) ON DELETE CASCADE,
-            hash         varchar(255),
+            hash         text,
             modified     datetime,
-            revision     varchar(255)
+            revision     text
           );
           INSERT INTO entries SELECT id, path, is_dir, parent_id, hash, modified, null FROM entries_old;
         })
@@ -153,13 +153,13 @@ module Dbox
           ALTER TABLE entries RENAME TO entries_old;
           CREATE TABLE entries (
             id           integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-            path         varchar(255) UNIQUE NOT NULL,
+            path         text UNIQUE NOT NULL,
             is_dir       boolean NOT NULL,
             parent_id    integer REFERENCES entries(id) ON DELETE CASCADE,
-            local_hash   varchar(255),
-            remote_hash  varchar(255),
+            local_hash   text,
+            remote_hash  text,
             modified     datetime,
-            revision     varchar(255)
+            revision     text
           );
           INSERT INTO entries SELECT id, path, is_dir, parent_id, null, hash, modified, revision FROM entries_old;
         })

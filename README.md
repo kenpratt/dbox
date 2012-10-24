@@ -263,12 +263,3 @@ $ export DROPBOX_AUTH_SECRET=pqej9rmnj0i1gcxr4
 > File.read("#{ENV['HOME']}/Dropbox/Public/hello.txt")
 => "Oh, Hello"
 ```
-
-Advanced
---------
-
-To speed up your syncs, you can manually set the number concurrent dropbox operations to execute. (The default is 2.)
-
-```sh
-$ export DROPBOX_CONCURRENCY=5
-```

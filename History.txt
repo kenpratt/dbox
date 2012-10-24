@@ -1,3 +1,7 @@
+== 0.7.0 / 2012-10-24
+  * Major Enhancements
+    * Removed support for concurrent uploads/downloads, as it was often encountering throttling from Dropbox APIs.
+
 == 0.6.15 / 2012-07-26
   * Bug Fixes
     * Fixed issue with gem in 0.6.14.

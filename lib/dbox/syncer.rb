@@ -1,6 +1,5 @@
 module Dbox
   class Syncer
-    DEFAULT_CONCURRENCY = 2
     MIN_BYTES_TO_STREAM_DOWNLOAD = 1024 * 100 # 100kB
 
     include Loggable
@@ -36,11 +35,6 @@ module Dbox
       @@_api ||= API.connect
     end
 
-    def self.concurrency
-      n = ENV["DROPBOX_CONCURRENCY"].to_i
-      n > 0 ? n : DEFAULT_CONCURRENCY
-    end
-
     class Operation
       include Loggable
       include Utils
@@ -53,11 +47,7 @@ module Dbox
       end
 
       def api
-        Thread.current[:api] || @api
-      end
-
-      def clone_api_into_current_thread
-        Thread.current[:api] = api.clone()
+        @api
       end
 
       def metadata
@@ -188,62 +178,57 @@ module Dbox
         parent_ids_of_failed_entries = []
         changelist = { :created => [], :deleted => [], :updated => [], :failed => [] }
 
-        # spin up a parallel task queue
-        ptasks = ParallelTasks.new(Syncer.concurrency) { clone_api_into_current_thread() }
-        ptasks.start
-
         changes.each do |op, c|
           case op
           when :create
             c[:parent_id] ||= lookup_id_by_path(c[:parent_path])
             if c[:is_dir]
-              # directory creation cannot go in a thread, since later
-              # operations might depend on the directory being there
+              # create the local directory
               create_dir(c)
               database.add_entry(c[:path], true, c[:parent_id], c[:modified], c[:revision], c[:remote_hash], nil)
               changelist[:created] << c[:path]
             else
-              ptasks.add do
-                begin
-                  res = create_file(c)
-                  local_hash = calculate_hash(relative_to_local_path(c[:path]))
-                  database.add_entry(c[:path], false, c[:parent_id], c[:modified], c[:revision], c[:remote_hash], local_hash)
-                  changelist[:created] << c[:path]
-                  if res.kind_of?(Array) && res[0] == :conflict
-                    changelist[:conflicts] ||= []
-                    changelist[:conflicts] << res[1]
-                  end
-                rescue Exception => e
-                  log.error "Error while downloading #{c[:path]}: #{e.inspect}\n#{e.backtrace.join("\n")}"
-                  parent_ids_of_failed_entries << c[:parent_id]
-                  changelist[:failed] << { :operation => :create, :path => c[:path], :error => e }
+              # download the new file
+              begin
+                res = create_file(c)
+                local_hash = calculate_hash(relative_to_local_path(c[:path]))
+                database.add_entry(c[:path], false, c[:parent_id], c[:modified], c[:revision], c[:remote_hash], local_hash)
+                changelist[:created] << c[:path]
+                if res.kind_of?(Array) && res[0] == :conflict
+                  changelist[:conflicts] ||= []
+                  changelist[:conflicts] << res[1]
                 end
+              rescue Exception => e
+                log.error "Error while downloading #{c[:path]}: #{e.inspect}\n#{e.backtrace.join("\n")}"
+                parent_ids_of_failed_entries << c[:parent_id]
+                changelist[:failed] << { :operation => :create, :path => c[:path], :error => e }
               end
             end
           when :update
             if c[:is_dir]
+              # update the local directory
               update_dir(c)
               database.update_entry_by_path(c[:path], :modified => c[:modified], :revision => c[:revision], :remote_hash => c[:remote_hash])
               changelist[:updated] << c[:path]
             else
-              ptasks.add do
-                begin
-                  res = update_file(c)
-                  local_hash = calculate_hash(relative_to_local_path(c[:path]))
-                  database.update_entry_by_path(c[:path], :modified => c[:modified], :revision => c[:revision], :remote_hash => c[:remote_hash], :local_hash => local_hash)
-                  changelist[:updated] << c[:path]
-                  if res.kind_of?(Array) && res[0] == :conflict
-                    changelist[:conflicts] ||= []
-                    changelist[:conflicts] << res[1]
-                  end
-                rescue Exception => e
-                  log.error "Error while downloading #{c[:path]}: #{e.inspect}\n#{e.backtrace.join("\n")}"
-                  parent_ids_of_failed_entries << c[:parent_id]
-                  changelist[:failed] << { :operation => :create, :path => c[:path], :error => e }
+              # download updates to the file
+              begin
+                res = update_file(c)
+                local_hash = calculate_hash(relative_to_local_path(c[:path]))
+                database.update_entry_by_path(c[:path], :modified => c[:modified], :revision => c[:revision], :remote_hash => c[:remote_hash], :local_hash => local_hash)
+                changelist[:updated] << c[:path]
+                if res.kind_of?(Array) && res[0] == :conflict
+                  changelist[:conflicts] ||= []
+                  changelist[:conflicts] << res[1]
                 end
+              rescue Exception => e
+                log.error "Error while downloading #{c[:path]}: #{e.inspect}\n#{e.backtrace.join("\n")}"
+                parent_ids_of_failed_entries << c[:parent_id]
+                changelist[:failed] << { :operation => :create, :path => c[:path], :error => e }
               end
             end
           when :delete
+            # delete the local directory/file
             c[:is_dir] ? delete_dir(c) : delete_file(c)
             database.delete_entry_by_path(c[:path])
             changelist[:deleted] << c[:path]
@@ -254,9 +239,6 @@ module Dbox
             raise(RuntimeError, "Unknown operation type: #{op}")
           end
         end
-
-        # wait for operations to finish
-        ptasks.finish
 
         # clear hashes on any dirs with children that failed so that
         # they are processed again on next pull
@@ -326,18 +308,14 @@ module Dbox
         end
 
         # recursively process new & existing subdirectories in parallel
-        threads = recur_dirs.map do |operation, dir|
-          Thread.new do
-            begin
-              clone_api_into_current_thread()
-              Thread.current[:out] = calculate_changes(dir, operation)
-            rescue Exception => e
-              log.error "Error while caclulating changes for #{operation} on #{dir[:path]}: #{e.inspect}\n#{e.backtrace.join("\n")}"
-              Thread.current[:out] = [[:failed, dir.merge({ :operation => operation, :error => e })]]
-            end
+        recur_dirs.each do |operation, dir|
+          begin
+            out += calculate_changes(dir, operation)
+          rescue Exception => e
+            log.error "Error while caclulating changes for #{operation} on #{dir[:path]}: #{e.inspect}\n#{e.backtrace.join("\n")}"
+            out += [[:failed, dir.merge({ :operation => operation, :error => e })]]
           end
         end
-        threads.each {|t| t.join; out += t[:out] }
 
         out
       end
@@ -449,41 +427,34 @@ module Dbox
         log.debug "Executing changes:\n" + changes.map {|c| c.inspect }.join("\n")
         changelist = { :created => [], :deleted => [], :updated => [], :failed => [] }
 
-        # spin up a parallel task queue
-        ptasks = ParallelTasks.new(Syncer.concurrency) { clone_api_into_current_thread() }
-        ptasks.start
-
         changes.each do |op, c|
           case op
           when :create
             c[:parent_id] ||= lookup_id_by_path(c[:parent_path])
 
             if c[:is_dir]
-              # directory creation cannot go in a thread, since later
-              # operations might depend on the directory being there
+              # create the remote directiory
               create_dir(c)
               database.add_entry(c[:path], true, c[:parent_id], nil, nil, nil, nil)
               force_metadata_update_from_server(c)
               changelist[:created] << c[:path]
             else
-              # spin up a thread to upload the file
-              ptasks.add do
-                begin
-                  local_hash = calculate_hash(relative_to_local_path(c[:path]))
-                  res = upload_file(c)
-                  database.add_entry(c[:path], false, c[:parent_id], nil, nil, nil, local_hash)
-                  if c[:path] == res[:path]
-                    force_metadata_update_from_server(c)
-                    changelist[:created] << c[:path]
-                  else
-                    log.warn "#{c[:path]} had a conflict and was renamed to #{res[:path]} on the server"
-                    changelist[:conflicts] ||= []
-                    changelist[:conflicts] << { :original => c[:path], :renamed => res[:path] }
-                  end
-                rescue Exception => e
-                  log.error "Error while uploading #{c[:path]}: #{e.inspect}\n#{e.backtrace.join("\n")}"
-                  changelist[:failed] << { :operation => :create, :path => c[:path], :error => e }
+              # upload a new file
+              begin
+                local_hash = calculate_hash(relative_to_local_path(c[:path]))
+                res = upload_file(c)
+                database.add_entry(c[:path], false, c[:parent_id], nil, nil, nil, local_hash)
+                if c[:path] == res[:path]
+                  force_metadata_update_from_server(c)
+                  changelist[:created] << c[:path]
+                else
+                  log.warn "#{c[:path]} had a conflict and was renamed to #{res[:path]} on the server"
+                  changelist[:conflicts] ||= []
+                  changelist[:conflicts] << { :original => c[:path], :renamed => res[:path] }
                 end
+              rescue Exception => e
+                log.error "Error while uploading #{c[:path]}: #{e.inspect}\n#{e.backtrace.join("\n")}"
+                changelist[:failed] << { :operation => :create, :path => c[:path], :error => e }
               end
             end
           when :update
@@ -494,46 +465,41 @@ module Dbox
 
             # only update files -- nothing to do to update a dir
             if !c[:is_dir]
-
-              # spin up a thread to upload the file
-              ptasks.add do
-                begin
-                  local_hash = calculate_hash(relative_to_local_path(c[:path]))
-                  res = upload_file(c)
-                  database.update_entry_by_path(c[:path], :local_hash => local_hash)
-                  if c[:path] == res[:path]
-                    force_metadata_update_from_server(c)
-                    changelist[:updated] << c[:path]
-                  else
-                    log.warn "#{c[:path]} had a conflict and was renamed to #{res[:path]} on the server"
-                    changelist[:conflicts] ||= []
-                    changelist[:conflicts] << { :original => c[:path], :renamed => res[:path] }
-                  end
-                rescue Exception => e
-                  log.error "Error while uploading #{c[:path]}: #{e.inspect}\n#{e.backtrace.join("\n")}"
-                  changelist[:failed] << { :operation => :update, :path => c[:path], :error => e }
+              # upload changes to a file
+              begin
+                local_hash = calculate_hash(relative_to_local_path(c[:path]))
+                res = upload_file(c)
+                database.update_entry_by_path(c[:path], :local_hash => local_hash)
+                if c[:path] == res[:path]
+                  force_metadata_update_from_server(c)
+                  changelist[:updated] << c[:path]
+                else
+                  log.warn "#{c[:path]} had a conflict and was renamed to #{res[:path]} on the server"
+                  changelist[:conflicts] ||= []
+                  changelist[:conflicts] << { :original => c[:path], :renamed => res[:path] }
                 end
+              rescue Exception => e
+                log.error "Error while uploading #{c[:path]}: #{e.inspect}\n#{e.backtrace.join("\n")}"
+                changelist[:failed] << { :operation => :update, :path => c[:path], :error => e }
               end
             end
           when :delete
-            # spin up a thread to delete the file/dir
-            ptasks.add do
+            # delete a remote file/directory
+            begin
               begin
-                begin
-                  if c[:is_dir]
-                    delete_dir(c)
-                  else
-                    delete_file(c)
-                  end
-                rescue Dbox::RemoteMissing
-                  # safe to delete even if remote is already gone
+                if c[:is_dir]
+                  delete_dir(c)
+                else
+                  delete_file(c)
                 end
-                database.delete_entry_by_path(c[:path])
-                changelist[:deleted] << c[:path]
-              rescue Exception => e
-                log.error "Error while deleting #{c[:path]}: #{e.inspect}\n#{e.backtrace.join("\n")}"
-                changelist[:failed] << { :operation => :delete, :path => c[:path], :error => e }
+              rescue Dbox::RemoteMissing
+                # safe to delete even if remote is already gone
               end
+              database.delete_entry_by_path(c[:path])
+              changelist[:deleted] << c[:path]
+            rescue Exception => e
+              log.error "Error while deleting #{c[:path]}: #{e.inspect}\n#{e.backtrace.join("\n")}"
+              changelist[:failed] << { :operation => :delete, :path => c[:path], :error => e }
             end
           when :failed
             changelist[:failed] << { :operation => c[:operation], :path => c[:path], :error => c[:error] }
@@ -541,9 +507,6 @@ module Dbox
             raise(RuntimeError, "Unknown operation type: #{op}")
           end
         end
-
-        # wait for operations to finish
-        ptasks.finish
 
         # sort & return output
         sort_changelist(changelist)

@@ -40,6 +40,11 @@ def make_file(filepath, size_in_kb=1)
   `dd if=/dev/urandom of="#{filepath.gsub('"','\"')}" bs=1024 count=#{size_in_kb} 1>/dev/null 2>/dev/null`
 end
 
+def rename_file(oldpath, newpath)
+  FileUtils.mv oldpath, "#{oldpath}-tmp"
+  FileUtils.mv "#{oldpath}-tmp", newpath
+end
+
 RSpec::Matchers.define :exist do
   match do |actual|
     File.exists?(actual) == true

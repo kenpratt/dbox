@@ -55,12 +55,12 @@ module Dbox
       @db.execute_batch(%{
         CREATE TABLE IF NOT EXISTS metadata (
           id           integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-          remote_path  text NOT NULL,
+          remote_path  text COLLATE NOCASE UNIQUE NOT NULL,
           version      integer NOT NULL
         );
         CREATE TABLE IF NOT EXISTS entries (
           id           integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-          path         text UNIQUE NOT NULL,
+          path         text COLLATE NOCASE UNIQUE NOT NULL,
           is_dir       boolean NOT NULL,
           parent_id    integer REFERENCES entries(id) ON DELETE CASCADE,
           local_hash   text,
@@ -69,6 +69,7 @@ module Dbox
           revision     text
         );
         CREATE INDEX IF NOT EXISTS entry_parent_ids ON entries(parent_id);
+        CREATE INDEX IF NOT EXISTS entry_path ON entries(path);
       })
     end
 
@@ -181,6 +182,50 @@ module Dbox
           COMMIT;
         })
       end
+
+      if metadata[:version] < 5
+        log.info "Migrating to database schema v5"
+
+        # make path be case insensitive
+        @db.execute_batch(%{
+          BEGIN TRANSACTION;
+
+          -- migrate metadata table
+          ALTER TABLE metadata RENAME TO metadata_old;
+          CREATE TABLE IF NOT EXISTS metadata (
+            id           integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+            remote_path  text COLLATE NOCASE UNIQUE NOT NULL,
+            version      integer NOT NULL
+          );
+          INSERT INTO metadata SELECT id, remote_path, version FROM metadata_old;
+          DROP TABLE metadata_old;
+
+          -- migrate entries table
+          ALTER TABLE entries RENAME TO entries_old;
+          CREATE TABLE entries (
+            id           integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+            path         text COLLATE NOCASE UNIQUE NOT NULL,
+            is_dir       boolean NOT NULL,
+            parent_id    integer REFERENCES entries(id) ON DELETE CASCADE,
+            local_hash   text,
+            remote_hash  text,
+            modified     datetime,
+            revision     text
+          );
+          INSERT INTO entries SELECT id, path, is_dir, parent_id, local_hash, remote_hash, modified, revision FROM entries_old;
+          DROP TABLE entries_old;
+
+          -- recreate indexes
+          DROP INDEX IF EXISTS entry_parent_ids;
+          DROP INDEX IF EXISTS entry_path;
+          CREATE INDEX entry_parent_ids ON entries(parent_id);
+          CREATE INDEX entry_path ON entries(path);
+
+          -- update version
+          UPDATE metadata SET version = 5;
+          COMMIT;
+        })
+      end
     end
 
     METADATA_COLS = [ :remote_path, :version ] # don't need to return id
@@ -189,7 +234,7 @@ module Dbox
     def bootstrap(remote_path)
       @db.execute(%{
         INSERT INTO metadata (remote_path, version) VALUES (?, ?);
-      }, remote_path, 4)
+      }, remote_path, 5)
       @db.execute(%{
         INSERT INTO entries (path, is_dir) VALUES (?, ?)
       }, "", 1)
@@ -341,6 +386,8 @@ module Dbox
         h = make_fields(entry_cols, res)
         h[:is_dir] = (h[:is_dir] == 1)
         h[:modified]  = Time.at(h[:modified]) if h[:modified]
+        h[:local_path] = relative_to_local_path(h[:path])
+        h[:remote_path] = relative_to_remote_path(h[:path])
         h
       else
         nil

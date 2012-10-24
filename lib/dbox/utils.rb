@@ -25,8 +25,8 @@ module Dbox
 
     # assumes local_path is defined
     def local_to_relative_path(path)
-      if path.include?(local_path)
-        path.sub(local_path, "").sub(/^\//, "")
+      if path =~ /^#{local_path}\/?(.*)$/i
+        $1
       else
         raise BadPath, "Not a local path: #{path}"
       end
@@ -34,8 +34,8 @@ module Dbox
 
     # assumes remote_path is defined
     def remote_to_relative_path(path)
-      if path.include?(remote_path)
-        path.sub(remote_path, "").sub(/^\//, "")
+      if path =~ /^#{remote_path}\/?(.*)$/i
+        $1
       else
         raise BadPath, "Not a remote path: #{path}"
       end
@@ -44,9 +44,10 @@ module Dbox
     # assumes local_path is defined
     def relative_to_local_path(path)
       if path && path.length > 0
-        File.join(local_path, path)
+        p = File.join(local_path, path)
+        case_insensitive_resolve(p)
       else
-        local_path
+        case_insensitive_resolve(local_path)
       end
     end
 
@@ -57,6 +58,28 @@ module Dbox
       else
         remote_path
       end
+    end
+
+    def case_insensitive_resolve(path)
+      if File.exists?(path)
+        path
+      else
+        matches = Dir.glob(path, File::FNM_CASEFOLD)
+        case matches.size
+        when 0 then path
+        when 1 then matches.first
+        else raise(RuntimeError, "Oops, you have multiple files with the same case. Please delete one of them, as Dropbox is case insensitive. (#{matches.join(', ')})")
+        end
+      end
+    end
+
+    def case_insensitive_difference(a, b)
+      b = b.map(&:downcase).sort
+      a.reject {|s| b.include?(s.downcase) }
+    end
+
+    def case_insensitive_equal(a, b)
+      a && b && a.downcase == b.downcase
     end
 
     def calculate_hash(filepath)
@@ -71,7 +94,7 @@ module Dbox
 
     def find_nonconflicting_path(filepath)
       proposed = filepath
-      while File.exists?(proposed)
+      while File.exists?(case_insensitive_resolve(proposed))
         dir, p = File.split(proposed)
         p = p.sub(/^(.*?)( \((\d+)\))?(\..*?)?$/) { "#{$1} (#{$3 ? $3.to_i + 1 : 1})#{$4}" }
         proposed = File.join(dir, p)

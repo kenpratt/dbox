@@ -9,7 +9,7 @@ require "yaml"
 require "logger"
 require "cgi"
 require "sqlite3"
-require "active_support/core_ext/hash/indifferent_access"
+require "insensitive_hash/minimal"
 
 require "dbox/loggable"
 require "dbox/utils"

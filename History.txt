@@ -1,5 +1,6 @@
 == 0.7.0 / 2012-10-24
   * Major Enhancements
+    * Changed to be case insensitive, like Dropbox.
     * Removed support for concurrent uploads/downloads, as it was often encountering throttling from Dropbox APIs.
 
 == 0.6.15 / 2012-07-26

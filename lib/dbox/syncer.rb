@@ -68,7 +68,7 @@ module Dbox
 
       def current_dir_entries_as_hash(dir)
         if dir[:id]
-          out = {}
+          out = InsensitiveHash.new
           database.contents(dir[:id]).each {|e| out[e[:path]] = e }
           out
         else
@@ -89,17 +89,20 @@ module Dbox
       end
 
       def saving_parent_timestamp(entry, &proc)
-        local_path = relative_to_local_path(entry[:path])
-        parent = File.dirname(local_path)
+        parent = File.dirname(entry[:local_path])
         saving_timestamp(parent, &proc)
       end
 
       def update_file_timestamp(entry)
-        File.utime(Time.now, entry[:modified], relative_to_local_path(entry[:path]))
+        begin
+          File.utime(Time.now, entry[:modified], entry[:local_path])
+        rescue Errno::ENOENT
+          nil
+        end
       end
 
       def gather_remote_info(entry)
-        res = api.metadata(relative_to_remote_path(entry[:path]), entry[:remote_hash])
+        res = api.metadata(entry[:remote_path], entry[:remote_hash])
         case res
         when Hash
           out = process_basic_remote_props(res)
@@ -123,6 +126,8 @@ module Dbox
       def process_basic_remote_props(res)
         out = {}
         out[:path]        = remote_to_relative_path(res[:path])
+        out[:local_path]  = relative_to_local_path(out[:path])
+        out[:remote_path] = relative_to_remote_path(out[:path])
         out[:modified]    = parse_time(res[:modified])
         out[:is_dir]      = res[:is_dir]
         out[:remote_hash] = res[:hash] if res[:hash]
@@ -191,7 +196,7 @@ module Dbox
               # download the new file
               begin
                 res = create_file(c)
-                local_hash = calculate_hash(relative_to_local_path(c[:path]))
+                local_hash = calculate_hash(c[:local_path])
                 database.add_entry(c[:path], false, c[:parent_id], c[:modified], c[:revision], c[:remote_hash], local_hash)
                 changelist[:created] << c[:path]
                 if res.kind_of?(Array) && res[0] == :conflict
@@ -214,7 +219,7 @@ module Dbox
               # download updates to the file
               begin
                 res = update_file(c)
-                local_hash = calculate_hash(relative_to_local_path(c[:path]))
+                local_hash = calculate_hash(c[:local_path])
                 database.update_entry_by_path(c[:path], :modified => c[:modified], :revision => c[:revision], :remote_hash => c[:remote_hash], :local_hash => local_hash)
                 changelist[:updated] << c[:path]
                 if res.kind_of?(Array) && res[0] == :conflict
@@ -302,7 +307,7 @@ module Dbox
           end
 
           # add any deletions
-          out += (existing_entries.keys.sort - found_paths.sort).map do |p|
+          out += case_insensitive_difference(existing_entries.keys, found_paths).map do |p|
             [:delete, existing_entries[p]]
           end
         end
@@ -329,7 +334,7 @@ module Dbox
       end
 
       def create_dir(dir)
-        local_path = relative_to_local_path(dir[:path])
+        local_path = dir[:local_path]
         log.info "Creating #{local_path}"
         saving_parent_timestamp(dir) do
           FileUtils.mkdir_p(local_path)
@@ -342,7 +347,7 @@ module Dbox
       end
 
       def delete_dir(dir)
-        local_path = relative_to_local_path(dir[:path])
+        local_path = dir[:local_path]
         log.info "Deleting #{local_path}"
         saving_parent_timestamp(dir) do
           FileUtils.rm_r(local_path)
@@ -360,7 +365,7 @@ module Dbox
       end
 
       def delete_file(file)
-        local_path = relative_to_local_path(file[:path])
+        local_path = file[:local_path]
         log.info "Deleting file: #{local_path}"
         saving_parent_timestamp(file) do
           FileUtils.rm_rf(local_path)
@@ -368,8 +373,8 @@ module Dbox
       end
 
       def download_file(file)
-        local_path = relative_to_local_path(file[:path])
-        remote_path = relative_to_remote_path(file[:path])
+        local_path = file[:local_path]
+        remote_path = file[:remote_path]
 
         # check to ensure we aren't overwriting an untracked file or a
         # file with local modifications
@@ -441,10 +446,10 @@ module Dbox
             else
               # upload a new file
               begin
-                local_hash = calculate_hash(relative_to_local_path(c[:path]))
+                local_hash = calculate_hash(c[:local_path])
                 res = upload_file(c)
                 database.add_entry(c[:path], false, c[:parent_id], nil, nil, nil, local_hash)
-                if c[:path] == res[:path]
+                if case_insensitive_equal(c[:path], res[:path])
                   force_metadata_update_from_server(c)
                   changelist[:created] << c[:path]
                 else
@@ -467,10 +472,10 @@ module Dbox
             if !c[:is_dir]
               # upload changes to a file
               begin
-                local_hash = calculate_hash(relative_to_local_path(c[:path]))
+                local_hash = calculate_hash(c[:local_path])
                 res = upload_file(c)
                 database.update_entry_by_path(c[:path], :local_hash => local_hash)
-                if c[:path] == res[:path]
+                if case_insensitive_equal(c[:path], res[:path])
                   force_metadata_update_from_server(c)
                   changelist[:updated] << c[:path]
                 else
@@ -522,7 +527,17 @@ module Dbox
         child_paths = list_contents(dir).sort
 
         child_paths.each do |p|
-          c = { :path => p, :modified => mtime(p), :is_dir => is_dir(p), :parent_path => dir[:path], :local_hash => calculate_hash(relative_to_local_path(p)) }
+          local_path = relative_to_local_path(p)
+          remote_path = relative_to_remote_path(p)
+          c = {
+            :path => p,
+            :local_path => local_path,
+            :remote_path => remote_path,
+            :modified => mtime(local_path),
+            :is_dir => is_dir(local_path),
+            :parent_path => dir[:path],
+            :local_hash => calculate_hash(local_path)
+          }
           if entry = existing_entries[p]
             c[:id] = entry[:id]
             recur_dirs << c if c[:is_dir] # queue dir for later
@@ -535,7 +550,7 @@ module Dbox
         end
 
         # add any deletions
-        out += (existing_entries.keys.sort - child_paths).map do |p|
+        out += case_insensitive_difference(existing_entries.keys, child_paths).map do |p|
           [:delete, existing_entries[p]]
         end
 
@@ -548,11 +563,11 @@ module Dbox
       end
 
       def mtime(path)
-        File.mtime(relative_to_local_path(path))
+        File.mtime(path)
       end
 
       def is_dir(path)
-        File.directory?(relative_to_local_path(path))
+        File.directory?(path)
       end
 
       def modified?(entry, res)
@@ -570,30 +585,30 @@ module Dbox
       end
 
       def list_contents(dir)
-        local_path = relative_to_local_path(dir[:path])
+        local_path = dir[:local_path]
         paths = Dir.entries(local_path).reject {|s| s == "." || s == ".." || s.start_with?(".") }
         paths.map {|p| local_to_relative_path(File.join(local_path, p)) }
       end
 
       def create_dir(dir)
-        remote_path = relative_to_remote_path(dir[:path])
+        remote_path = dir[:remote_path]
         log.info "Creating #{remote_path}"
         api.create_dir(remote_path)
       end
 
       def delete_dir(dir)
-        remote_path = relative_to_remote_path(dir[:path])
+        remote_path = dir[:remote_path]
         api.delete_dir(remote_path)
       end
 
       def delete_file(file)
-        remote_path = relative_to_remote_path(file[:path])
+        remote_path = file[:remote_path]
         api.delete_file(remote_path)
       end
 
       def upload_file(file)
-        local_path = relative_to_local_path(file[:path])
-        remote_path = relative_to_remote_path(file[:path])
+        local_path = file[:local_path]
+        remote_path = file[:remote_path]
         db_entry = database.find_by_path(file[:path])
         last_revision = db_entry ? db_entry[:revision] : nil
         res = api.put_file(remote_path, local_path, last_revision)

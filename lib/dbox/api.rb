@@ -89,7 +89,7 @@ module Dbox
     def handle_response(path, res, &else_proc)
       case res
       when Hash
-        HashWithIndifferentAccess.new(res)
+        InsensitiveHash[res]
       when String
         res
       when Net::HTTPNotFound

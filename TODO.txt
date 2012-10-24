@@ -1,3 +1,8 @@
+* Upgrade to newest Dropbox Ruby SDK.
+* Look into using the new /chunked_upload support instead of custom streaming upload.
+* Look into using /delta api.
+* Try to get rid of extra updated dirs on pull after push (have push update all the mtimes and such that it affects, so the pull is clean). -- This will clean up the tests more than anything.
+* Ensure Dropbox API best practices are being followed as closely as possible (https://www.dropbox.com/developers/reference/bestpractice).
 * Look into occasional hanging on pull operations.
 * Look into memory leak when syncing a large amount of files.
 * Look into 10000 file limit on metadata operations.

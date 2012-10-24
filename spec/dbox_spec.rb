@@ -460,6 +460,113 @@ describe Dbox do
       Dbox.sync(@local).should eql(:pull => { :created => ["au_revoir.txt", "farewell.txt", "hello (1).txt"], :deleted => [], :updated => ["", "goodbye.txt"], :failed => [] },
                                    :push => { :created => [], :deleted => [], :updated => [], :failed => [] })
     end
+
+    it "should be able to handle a file that has changed case" do
+      Dbox.create(@remote, @local)
+      make_file "#{@local}/hello.txt"
+      Dbox.sync(@local).should eql(:pull => { :created => [], :deleted => [], :updated => [], :failed => [] },
+                                   :push => { :created => ["hello.txt"], :deleted => [], :updated => [], :failed => [] })
+      rename_file "#{@local}/hello.txt", "#{@local}/HELLO.txt"
+      Dbox.sync(@local).should eql(:pull => { :created => [], :deleted => [], :updated => [""], :failed => [] },
+                                   :push => { :created => [], :deleted => [], :updated => [], :failed => [] })
+    end
+
+    it "should be able to handle a file that has changed case remotely" do
+      Dbox.create(@remote, @local)
+      @alternate = "#{ALTERNATE_LOCAL_TEST_PATH}/#{@name}"
+      Dbox.clone(@remote, @alternate)
+      make_file "#{@local}/hello.txt"
+      Dbox.sync(@local).should eql(:pull => { :created => [], :deleted => [], :updated => [], :failed => [] },
+                                   :push => { :created => ["hello.txt"], :deleted => [], :updated => [], :failed => [] })
+      Dbox.sync(@alternate).should eql(:pull => { :created => ["hello.txt"], :deleted => [], :updated => [""], :failed => [] },
+                                       :push => { :created => [], :deleted => [], :updated => [], :failed => [] })
+      rename_file "#{@local}/hello.txt", "#{@local}/HELLO.txt"
+      Dbox.sync(@local).should eql(:pull => { :created => [], :deleted => [], :updated => [""], :failed => [] },
+                                   :push => { :created => [], :deleted => [], :updated => [], :failed => [] })
+      Dbox.sync(@alternate).should eql(:pull => { :created => [], :deleted => [], :updated => [], :failed => [] },
+                                       :push => { :created => [], :deleted => [], :updated => [], :failed => [] })
+    end
+
+    it "should be able to handle a folder that has changed case" do
+      Dbox.create(@remote, @local)
+      mkdir "#{@local}/foo"
+      make_file "#{@local}/foo/hello.txt"
+      Dbox.sync(@local).should eql(:pull => { :created => [], :deleted => [], :updated => [], :failed => [] },
+                                   :push => { :created => ["foo", "foo/hello.txt"], :deleted => [], :updated => [], :failed => [] })
+      rename_file "#{@local}/foo", "#{@local}/FOO"
+      Dbox.sync(@local).should eql(:pull => { :created => [], :deleted => [], :updated => ["", "foo"], :failed => [] },
+                                   :push => { :created => [], :deleted => [], :updated => [], :failed => [] })
+      make_file "#{@local}/FOO/hello2.txt"
+      Dbox.sync(@local).should eql(:pull => { :created => [], :deleted => [], :updated => [], :failed => [] },
+                                   :push => { :created => ["FOO/hello2.txt"], :deleted => [], :updated => [], :failed => [] })
+    end
+
+    it "should be able to handle a folder that has changed case remotely" do
+      Dbox.create(@remote, @local)
+      @alternate = "#{ALTERNATE_LOCAL_TEST_PATH}/#{@name}"
+      Dbox.clone(@remote, @alternate)
+      mkdir "#{@local}/foo"
+      make_file "#{@local}/foo/hello.txt"
+      Dbox.sync(@local).should eql(:pull => { :created => [], :deleted => [], :updated => [], :failed => [] },
+                                   :push => { :created => ["foo", "foo/hello.txt"], :deleted => [], :updated => [], :failed => [] })
+      Dbox.sync(@alternate).should eql(:pull => { :created => ["foo", "foo/hello.txt"], :deleted => [], :updated => [""], :failed => [] },
+                                       :push => { :created => [], :deleted => [], :updated => [], :failed => [] })
+      rename_file "#{@local}/foo", "#{@local}/FOO"
+      make_file "#{@local}/FOO/hello2.txt"
+      make_file "#{@alternate}/foo/hello3.txt"
+      Dbox.sync(@local).should eql(:pull => { :created => [], :deleted => [], :updated => ["", "foo"], :failed => [] },
+                                   :push => { :created => ["FOO/hello2.txt"], :deleted => [], :updated => [], :failed => [] })
+      Dbox.sync(@alternate).should eql(:pull => { :created => ["foo/hello2.txt"], :deleted => [], :updated => ["foo"], :failed => [] },
+                                       :push => { :created => ["foo/hello3.txt"], :deleted => [], :updated => [], :failed => [] })
+      Dbox.sync(@local).should eql(:pull => { :created => ["foo/hello3.txt"], :deleted => [], :updated => ["foo"], :failed => [] },
+                                   :push => { :created => [], :deleted => [], :updated => [], :failed => [] })
+    end
+
+    it "should be able to handle creating a new file of a different case from a deleted file" do
+      Dbox.create(@remote, @local)
+      mkdir "#{@local}/foo"
+      make_file "#{@local}/foo/hello.txt"
+      Dbox.sync(@local).should eql(:pull => { :created => [], :deleted => [], :updated => [], :failed => [] },
+                                   :push => { :created => ["foo", "foo/hello.txt"], :deleted => [], :updated => [], :failed => [] })
+      rm_rf "#{@local}/foo"
+      Dbox.sync(@local).should eql(:pull => { :created => [], :deleted => [], :updated => ["", "foo"], :failed => [] },
+                                   :push => { :created => [], :deleted => ["foo"], :updated => [], :failed => [] })
+      mkdir "#{@local}/FOO"
+      make_file "#{@local}/FOO/HELLO.txt"
+      Dbox.sync(@local).should eql(:pull => { :created => [], :deleted => [], :updated => [""], :failed => [] },
+                                   :push => { :created => ["FOO", "FOO/HELLO.txt"], :deleted => [], :updated => [], :failed => [] })
+      Dbox.sync(@local).should eql(:pull => { :created => [], :deleted => [], :updated => ["", "FOO"], :failed => [] },
+                                   :push => { :created => [], :deleted => [], :updated => [], :failed => [] })
+    end
+
+    it "should be able to handle creating a new file of a different case from a deleted file remotely" do
+      Dbox.create(@remote, @local)
+      @alternate = "#{ALTERNATE_LOCAL_TEST_PATH}/#{@name}"
+      Dbox.clone(@remote, @alternate)
+
+      mkdir "#{@local}/foo"
+      make_file "#{@local}/foo/hello.txt"
+      Dbox.sync(@local).should eql(:pull => { :created => [], :deleted => [], :updated => [], :failed => [] },
+                                   :push => { :created => ["foo", "foo/hello.txt"], :deleted => [], :updated => [], :failed => [] })
+      Dbox.sync(@alternate).should eql(:pull => { :created => ["foo", "foo/hello.txt"], :deleted => [], :updated => [""], :failed => [] },
+                                       :push => { :created => [], :deleted => [], :updated => [], :failed => [] })
+      rm_rf "#{@alternate}/foo"
+      Dbox.sync(@alternate).should eql(:pull => { :created => [], :deleted => [], :updated => [], :failed => [] },
+                                       :push => { :created => [], :deleted => ["foo"], :updated => [], :failed => [] })
+      mkdir "#{@alternate}/FOO"
+      make_file "#{@alternate}/FOO/HELLO.txt"
+      make_file "#{@alternate}/FOO/HELLO2.txt"
+      Dbox.sync(@alternate).should eql(:pull => { :created => [], :deleted => [], :updated => [""], :failed => [] },
+                                       :push => { :created => ["FOO", "FOO/HELLO.txt", "FOO/HELLO2.txt"], :deleted => [], :updated => [], :failed => [] })
+
+      rename_file "#{@alternate}/FOO", "#{@alternate}/Foo"
+      make_file "#{@alternate}/Foo/Hello3.txt"
+      Dbox.sync(@alternate).should eql(:pull => { :created => [], :deleted => [], :updated => ["", "FOO"], :failed => [] },
+                                       :push => { :created => ["Foo/Hello3.txt"], :deleted => [], :updated => [], :failed => [] })
+
+      Dbox.sync(@local).should eql(:pull => { :created => ["foo/HELLO2.txt", "foo/Hello3.txt"], :deleted => [], :updated => ["", "FOO", "foo/HELLO.txt"], :failed => [] },
+                                   :push => { :created => [], :deleted => [], :updated => [], :failed => [] })
+    end
   end
 
   describe "#move" do

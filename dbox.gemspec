@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = "dbox"
-  s.version = "0.6.15"
+  s.version = "0.7.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Ken Pratt"]
-  s.date = "2012-07-26"
+  s.date = "2012-10-25"
   s.description = "An easy-to-use Dropbox client with fine-grained control over syncs."
   s.email = "ken@kenpratt.net"
   s.executables = ["dbox"]
@@ -32,7 +32,6 @@ Gem::Specification.new do |s|
     "lib/dbox/database.rb",
     "lib/dbox/db.rb",
     "lib/dbox/loggable.rb",
-    "lib/dbox/parallel_tasks.rb",
     "lib/dbox/syncer.rb",
     "lib/dbox/utils.rb",
     "sample_polling_script.rb",
@@ -54,7 +53,7 @@ Gem::Specification.new do |s|
   s.homepage = "http://github.com/kenpratt/dbox"
   s.licenses = ["MIT"]
   s.require_paths = ["lib"]
-  s.rubygems_version = "1.8.16"
+  s.rubygems_version = "1.8.24"
   s.summary = "Dropbox made easy."
 
   if s.respond_to? :specification_version then
@@ -65,20 +64,20 @@ Gem::Specification.new do |s|
       s.add_runtime_dependency(%q<oauth>, [">= 0.4.5"])
       s.add_runtime_dependency(%q<json>, [">= 1.5.3"])
       s.add_runtime_dependency(%q<sqlite3>, [">= 1.3.3"])
-      s.add_runtime_dependency(%q<activesupport>, [">= 3.0.1"])
+      s.add_runtime_dependency(%q<insensitive_hash>, [">= 0.3.0"])
     else
       s.add_dependency(%q<multipart-post>, [">= 1.1.2"])
       s.add_dependency(%q<oauth>, [">= 0.4.5"])
       s.add_dependency(%q<json>, [">= 1.5.3"])
       s.add_dependency(%q<sqlite3>, [">= 1.3.3"])
-      s.add_dependency(%q<activesupport>, [">= 3.0.1"])
+      s.add_dependency(%q<insensitive_hash>, [">= 0.3.0"])
     end
   else
     s.add_dependency(%q<multipart-post>, [">= 1.1.2"])
     s.add_dependency(%q<oauth>, [">= 0.4.5"])
     s.add_dependency(%q<json>, [">= 1.5.3"])
     s.add_dependency(%q<sqlite3>, [">= 1.3.3"])
-    s.add_dependency(%q<activesupport>, [">= 3.0.1"])
+    s.add_dependency(%q<insensitive_hash>, [">= 0.3.0"])
   end
 end
 

@@ -567,6 +567,27 @@ describe Dbox do
       Dbox.sync(@local).should eql(:pull => { :created => ["foo/HELLO2.txt", "foo/Hello3.txt"], :deleted => [], :updated => ["", "FOO", "foo/HELLO.txt"], :failed => [] },
                                    :push => { :created => [], :deleted => [], :updated => [], :failed => [] })
     end
+
+    it "should be able to handle nested directories with case changes" do
+      Dbox.create(@remote, @local)
+      @alternate = "#{ALTERNATE_LOCAL_TEST_PATH}/#{@name}"
+      Dbox.clone(@remote, @alternate)
+
+      mkdir "#{@local}/foo"
+      make_file "#{@local}/foo/hello.txt"
+      Dbox.sync(@local).should eql(:pull => { :created => [], :deleted => [], :updated => [], :failed => [] },
+                                   :push => { :created => ["foo", "foo/hello.txt"], :deleted => [], :updated => [], :failed => [] })
+      Dbox.sync(@alternate).should eql(:pull => { :created => ["foo", "foo/hello.txt"], :deleted => [], :updated => [""], :failed => [] },
+                                       :push => { :created => [], :deleted => [], :updated => [], :failed => [] })
+
+      rename_file "#{@local}/foo", "#{@local}/FOO"
+      mkdir "#{@local}/FOO/BAR"
+      make_file "#{@local}/FOO/BAR/hello2.txt"
+      Dbox.sync(@local).should eql(:pull => { :created => [], :deleted => [], :updated => ["", "foo"], :failed => [] },
+                                   :push => { :created => ["FOO/BAR", "FOO/BAR/hello2.txt"], :deleted => [], :updated => [], :failed => [] })
+      Dbox.sync(@alternate).should eql(:pull => { :created => ["FOO/BAR/hello2.txt", "foo/BAR"], :deleted => [], :updated => ["foo"], :failed => [] },
+                                       :push => { :created => [], :deleted => [], :updated => [], :failed => [] })
+    end
   end
 
   describe "#move" do

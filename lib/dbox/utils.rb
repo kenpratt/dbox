@@ -44,8 +44,7 @@ module Dbox
     # assumes local_path is defined
     def relative_to_local_path(path)
       if path && path.length > 0
-        p = File.join(local_path, path)
-        case_insensitive_resolve(p)
+        case_insensitive_join(local_path, path)
       else
         case_insensitive_resolve(local_path)
       end
@@ -70,6 +69,15 @@ module Dbox
         when 1 then matches.first
         else raise(RuntimeError, "Oops, you have multiple files with the same case. Please delete one of them, as Dropbox is case insensitive. (#{matches.join(', ')})")
         end
+      end
+    end
+
+    def case_insensitive_join(path, *rest)
+      if rest.length == 0
+        case_insensitive_resolve(path)
+      else
+        rest = rest.map {|s| s.split(File::SEPARATOR) }.flatten
+        case_insensitive_join(File.join(case_insensitive_resolve(path), rest[0]), *rest[1..-1])
       end
     end
 

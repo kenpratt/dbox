@@ -18,7 +18,6 @@ Jeweler::Tasks.new do |gem|
   gem.add_dependency "oauth", ">= 0.4.5"
   gem.add_dependency "json", ">= 1.5.3"
   gem.add_dependency "sqlite3", ">= 1.3.3"
-  gem.add_dependency "insensitive_hash", ">= 0.3.0"
 end
 Jeweler::RubygemsDotOrgTasks.new
 

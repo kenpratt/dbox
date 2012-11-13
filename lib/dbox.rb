@@ -1,5 +1,6 @@
 ROOT_PATH = File.expand_path(File.join(File.dirname(__FILE__), ".."))
 $:.unshift File.join(ROOT_PATH, "lib")
+$:.unshift File.join(ROOT_PATH, "vendor")
 $:.unshift File.join(ROOT_PATH, "vendor", "dropbox-ruby-sdk", "lib")
 
 require "dropbox_sdk"
@@ -9,7 +10,7 @@ require "yaml"
 require "logger"
 require "cgi"
 require "sqlite3"
-require "insensitive_hash/minimal"
+require "insensitive_hash_patched"
 
 require "dbox/loggable"
 require "dbox/utils"

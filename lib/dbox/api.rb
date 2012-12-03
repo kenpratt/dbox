@@ -54,15 +54,17 @@ module Dbox
       app_secret = ENV["DROPBOX_APP_SECRET"]
       auth_key = ENV["DROPBOX_AUTH_KEY"]
       auth_secret = ENV["DROPBOX_AUTH_SECRET"]
+      access_type = ENV["DROPBOX_ACCESS_TYPE"] || "dropbox" # "sandbox"
 
       raise(ConfigurationError, "Please set the DROPBOX_APP_KEY environment variable to a Dropbox application key") unless app_key
       raise(ConfigurationError, "Please set the DROPBOX_APP_SECRET environment variable to a Dropbox application secret") unless app_secret
       raise(ConfigurationError, "Please set the DROPBOX_AUTH_KEY environment variable to an authenticated Dropbox session key") unless auth_key
       raise(ConfigurationError, "Please set the DROPBOX_AUTH_SECRET environment variable to an authenticated Dropbox session secret") unless auth_secret
+      raise(ConfigurationError, "Please set the DROPBOX_ACCESS_TYPE environment variable either dropbox (full access) or sandbox (App access)") unless access_type == "dropbox" || access_type == "sandbox"
 
       @session = DropboxSession.new(app_key, app_secret)
       @session.set_access_token(auth_key, auth_secret)
-      @client = DropboxClient.new(@session, 'dropbox')
+      @client = DropboxClient.new(@session, access_type)
     end
 
     def run(path, tries = NUM_TRIES, &proc)

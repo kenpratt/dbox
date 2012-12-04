@@ -26,6 +26,7 @@ Environment varables needed for everything:
 Environment varables needed for everything other than authorize:
   export DROPBOX_AUTH_KEY=v4d7l1rez1czksn
   export DROPBOX_AUTH_SECRET=pqej9rmnj0i1gcxr4
+  export DROPBOX_ACCESS_TYPE=dropbox || app_folder (defaults to dropbox)
 
 See http://github.com/kenpratt/dbox for examples and more information
 _EOF

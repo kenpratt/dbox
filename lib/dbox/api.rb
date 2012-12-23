@@ -76,14 +76,27 @@ module Dbox
       rescue DropboxAuthError => e
         raise e
       rescue DropboxError => e
-        if e.http_response.kind_of?(Net::HTTPServiceUnavailable) && tries > 0
-          log.info "Encountered 503 on #{path} (likely rate limiting). Sleeping #{TIME_BETWEEN_TRIES}s and trying again."
-          # TODO check for "Retry-After" header and use that for sleep instead of TIME_BETWEEN_TRIES
-          log.debug "Headers: #{e.http_response.to_hash.inspect}"
+        if tries > 0
+          if e.http_response.kind_of?(Net::HTTPServiceUnavailable)
+            log.info "Encountered 503 on #{path} (likely rate limiting). Sleeping #{TIME_BETWEEN_TRIES}s and trying again."
+            # TODO check for "Retry-After" header and use that for sleep instead of TIME_BETWEEN_TRIES
+            log.info "Headers: #{e.http_response.to_hash.inspect}"
+          else
+            log.info "Encountered a dropbox error. Sleeping #{TIME_BETWEEN_TRIES}s and trying again. Error: #{e.inspect}"
+            log.info "Headers: #{e.http_response.to_hash.inspect}"
+          end
           sleep TIME_BETWEEN_TRIES
           run(path, tries - 1, &proc)
         else
           handle_response(path, e.http_response) { raise ServerError, "Server error -- might be a hiccup, please try your request again (#{e.message})" }
+        end
+      rescue Exception => e
+        if tries > 0
+          log.info "Encounted an unknown error. Sleeping #{TIME_BETWEEN_TRIES}s and trying again. Error: #{e.inspect}"
+          sleep TIME_BETWEEN_TRIES
+          run(path, tries - 1, &proc)
+        else
+          raise e
         end
       end
     end

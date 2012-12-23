@@ -1,3 +1,7 @@
+== 0.7.3 / 2012-12-23
+  * Minor Enhancements
+    * Added retry on all failed operations, not just rate limiting, to be more resilient with API errors.
+
 == 0.7.2 / 2012-12-04
   * Minor Enhancements
     * Added configurable Dropbox access type (sandbox or app_folder).

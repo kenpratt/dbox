@@ -212,7 +212,7 @@ module Dbox
       url = URI.parse(url)
       http = Net::HTTP.new(url.host, url.port)
       http.use_ssl = true
-      http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      http.verify_mode = OpenSSL::SSL::VERIFY_NONE
       http.ca_file = Dropbox::TRUSTED_CERT_FILE
 
       req = Net::HTTP::Get.new(url.request_uri)

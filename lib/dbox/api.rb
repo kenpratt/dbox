@@ -208,7 +208,7 @@ module Dbox
       end
     end
 
-    def streaming_download(url, io)
+    def streaming_download(url, io, num_redirects = 0)
       url = URI.parse(url)
       http = Net::HTTP.new(url.host, url.port)
       http.use_ssl = true
@@ -224,7 +224,13 @@ module Dbox
           res.read_body {|chunk| io.write(chunk) }
           true
         else
-          raise DropboxError.new("Invalid response #{res.inspect}")
+          if res.kind_of?(Net::HTTPRedirection) && res.header['location'] && num_redirects < 10
+            log.info("following redirect, num_redirects = #{num_redirects}")
+            log.info("redirect url: #{res.header['location']}")
+            streaming_download(res.header['location'], io, num_redirects + 1)
+          else
+            raise DropboxError.new("Invalid response #{res.inspect}")
+          end
         end
       end
     end

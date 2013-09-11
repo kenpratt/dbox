@@ -1,6 +1,11 @@
-== 0.7.4 / 2013-09-11
+== 0.7.5 / 2013-09-11
   * Minor Enhancements
     * Added API call & command to retrieve metadata about a remote folder.
+    * Turned off SSL peer verification.
+
+== 0.7.4 / 2013-04-09
+  * Bug Fixes
+    * Added following of redirects on streaming downloads.
 
 == 0.7.3 / 2012-12-23
   * Minor Enhancements

@@ -89,6 +89,10 @@ when "delete"
   local_path = args[1] || remote_path.split("/").last
 
   Dbox.send(command, remote_path, local_path)
+when "metadata"
+  remote_path = args[0]
+  res = Dbox.metadata(remote_path)
+  puts res.inspect
 else
   print_usage_and_quit
 end

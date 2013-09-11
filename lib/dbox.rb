@@ -95,6 +95,12 @@ module Dbox
     end
   end
 
+  def self.metadata(remote_path)
+    log.debug "Getting metadata for #{remote_path}"
+    remote_path = clean_remote_path(remote_path)
+    Dbox::Syncer.api.metadata(remote_path)
+  end
+
   private
 
   def self.clean_remote_path(path)

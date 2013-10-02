@@ -1,3 +1,7 @@
+== 0.7.6 / 2013-10-02
+  * Bug Fixes
+    * When downloading files, write in binary (issue with Ruby 1.9 running inside Rails environment).
+
 == 0.7.5 / 2013-09-11
   * Minor Enhancements
     * Added API call & command to retrieve metadata about a remote folder.

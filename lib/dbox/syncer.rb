@@ -390,7 +390,7 @@ module Dbox
 
         # download to temp file
         tmp = generate_tmpfilename(file[:path])
-        File.open(tmp, "w") do |f|
+        File.open(tmp, "wb") do |f|
           api.get_file(remote_path, f, stream)
         end
 

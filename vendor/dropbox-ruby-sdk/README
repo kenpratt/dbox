@@ -1,7 +1,0 @@
-Getting started with the Dropbox Ruby SDK:
-1.  Install json and oauth ruby gems with:
-    gem install json oauth
-2.  Edit cli_example.rb to to include your APP_KEY and APP_SECRET
-3.  Try running the example app: 'ruby cli_example.rb'.
-4.  See dropbox_controller.rb for an example Ruby on Rails controller.  It needs an APP_KEY and APP_SECRET set too.
-5.  Check out the dropbox website for reference and help! http://dropbox.com/developers_beta

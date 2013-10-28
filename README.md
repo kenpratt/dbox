@@ -42,35 +42,34 @@ $ export DROPBOX_APP_SECRET=uvuulp75xf9jffl
 ```sh
 $ DROPBOX_APP_KEY=cmlrrjd3j0gbend DROPBOX_APP_SECRET=uvuulp75xf9jffl dbox ...
 ```
-### Generate an auth token
+### Generate an access token
 
 * Make an authorize request:
 
 ```sh
 $ dbox authorize
-Please visit the following URL in your browser, log into Dropbox, and authorize the app you created.
-
-http://www.dropbox.com/0/oauth/authorize?oauth_token=j2kuzfvobcpqh0g
-
-When you have done so, press [ENTER] to continue.
+1. Go to: https://www.dropbox.com/1/oauth2/authorize?client_id=1x7xvn1pvas3a3&response_type=code
+2. Click "Allow" (you might have to log in first)
+3. Copy the authorization code
+Enter the authorization code here: 
 ```
 
-* Visit the given URL in your browser, and then go back to the terminal and press Enter.
+* Visit the given URL in your browser, and then go back to the terminal and enter the code that Dropbox provides.
 
 * Now either set the keys as environment variables:
 
 ```sh
-$ export DROPBOX_AUTH_KEY=v4d7l1rez1czksn
-$ export DROPBOX_AUTH_SECRET=pqej9rmnj0i1gcxr4
+$ export DROPBOX_ACCESS_TOKEN=aeDsfS4QaReAAAAAAAAAAbZ6nrUUrXZ_Z4Rct2DVTYp6B14N-qiz189gm2VHQqvD
+$ export DROPBOX_USER_ID=230324561
 ```
 
-* Or include them in calls to ```dbox```:
+* Or include the access token in calls to ```dbox```:
 
 ```sh
-$ DROPBOX_AUTH_KEY=v4d7l1rez1czksn DROPBOX_AUTH_SECRET=pqej9rmnj0i1gcxr4 dbox ...
+$ DROPBOX_ACCESS_TOKEN=aeDsfS4QaReAAAAAAAAAAbZ6nrUUrXZ_Z4Rct2DVTYp6B14N-qiz189gm2VHQqvD dbox ...
 ```
 
-* This auth token will last for **10 years**, or when you choose to invalidate it, whichever comes first. So you really only need to do this once, and then keep them around.
+* The access token will last for **10 years**, or when you choose to invalidate it, whichever comes first. So you really only need to do this once, and then keep them around.
 
 
 Using dbox from the Command-Line
@@ -136,8 +135,7 @@ $ open http://www.dropbox.com/0/oauth/authorize?oauth_token=aaoeuhtns123456
 ```
 
 ```sh
-$ export DROPBOX_AUTH_KEY=v4d7l1rez1czksn
-$ export DROPBOX_AUTH_SECRET=pqej9rmnj0i1gcxr4
+$ export DROPBOX_ACCESS_TOKEN=aeDsfS4QaReAAAAAAAAAAbZ6nrUUrXZ_Z4Rct2DVTYp6B14N-qiz189gm2VHQqvD
 ```
 
 ```sh
@@ -245,8 +243,8 @@ $ open http://www.dropbox.com/0/oauth/authorize?oauth_token=aaoeuhtns123456
 ```
 
 ```sh
-$ export DROPBOX_AUTH_KEY=v4d7l1rez1czksn
-$ export DROPBOX_AUTH_SECRET=pqej9rmnj0i1gcxr4
+$ export DROPBOX_ACCESS_TOKEN=aeDsfS4QaReAAAAAAAAAAbZ6nrUUrXZ_Z4Rct2DVTYp6B14N-qiz189gm2VHQqvD
+$ export DROPBOX_USER_ID=pqej9rmnj0i1gcxr4
 ```
 
 ```ruby

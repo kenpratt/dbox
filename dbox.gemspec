@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Ken Pratt"]
-  s.date = "2013-10-02"
+  s.date = "2013-10-28"
   s.description = "An easy-to-use Dropbox client with fine-grained control over syncs."
   s.email = "ken@kenpratt.net"
   s.executables = ["dbox"]
@@ -37,24 +37,12 @@ Gem::Specification.new do |s|
     "sample_polling_script.rb",
     "spec/dbox_spec.rb",
     "spec/spec_helper.rb",
-    "vendor/dropbox-ruby-sdk/CHANGELOG",
-    "vendor/dropbox-ruby-sdk/LICENSE",
-    "vendor/dropbox-ruby-sdk/README",
-    "vendor/dropbox-ruby-sdk/cli_example.rb",
-    "vendor/dropbox-ruby-sdk/copy_between_accounts.rb",
-    "vendor/dropbox-ruby-sdk/dropbox_controller.rb",
-    "vendor/dropbox-ruby-sdk/gemspec.rb",
-    "vendor/dropbox-ruby-sdk/lib/dropbox_sdk.rb",
-    "vendor/dropbox-ruby-sdk/lib/trusted-certs.crt",
-    "vendor/dropbox-ruby-sdk/search_cache.json",
-    "vendor/dropbox-ruby-sdk/search_cache.rb",
-    "vendor/dropbox-ruby-sdk/web_file_browser.rb",
     "vendor/insensitive_hash_patched.rb"
   ]
   s.homepage = "http://github.com/kenpratt/dbox"
   s.licenses = ["MIT"]
   s.require_paths = ["lib"]
-  s.rubygems_version = "1.8.24"
+  s.rubygems_version = "1.8.23"
   s.summary = "Dropbox made easy."
 
   if s.respond_to? :specification_version then
@@ -65,17 +53,20 @@ Gem::Specification.new do |s|
       s.add_runtime_dependency(%q<oauth>, [">= 0.4.5"])
       s.add_runtime_dependency(%q<json>, [">= 1.5.3"])
       s.add_runtime_dependency(%q<sqlite3>, [">= 1.3.3"])
+      s.add_runtime_dependency(%q<dropbox-sdk>, [">= 1.6.2"])
     else
       s.add_dependency(%q<multipart-post>, [">= 1.1.2"])
       s.add_dependency(%q<oauth>, [">= 0.4.5"])
       s.add_dependency(%q<json>, [">= 1.5.3"])
       s.add_dependency(%q<sqlite3>, [">= 1.3.3"])
+      s.add_dependency(%q<dropbox-sdk>, [">= 1.6.2"])
     end
   else
     s.add_dependency(%q<multipart-post>, [">= 1.1.2"])
     s.add_dependency(%q<oauth>, [">= 0.4.5"])
     s.add_dependency(%q<json>, [">= 1.5.3"])
     s.add_dependency(%q<sqlite3>, [">= 1.3.3"])
+    s.add_dependency(%q<dropbox-sdk>, [">= 1.6.2"])
   end
 end
 

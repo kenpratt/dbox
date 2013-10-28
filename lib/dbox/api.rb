@@ -14,22 +14,31 @@ module Dbox
     def self.authorize
       app_key = ENV["DROPBOX_APP_KEY"]
       app_secret = ENV["DROPBOX_APP_SECRET"]
-
+      
       raise(ConfigurationError, "Please set the DROPBOX_APP_KEY environment variable to a Dropbox application key") unless app_key
       raise(ConfigurationError, "Please set the DROPBOX_APP_SECRET environment variable to a Dropbox application secret") unless app_secret
 
-      auth = DropboxSession.new(app_key, app_secret)
-      puts "Please visit the following URL in your browser, log into Dropbox, and authorize the app you created.\n\n#{auth.get_authorize_url}\n\nWhen you have done so, press [ENTER] to continue."
-      STDIN.readline
-      res = auth.get_access_token
-      puts "export DROPBOX_AUTH_KEY=#{res.key}"
-      puts "export DROPBOX_AUTH_SECRET=#{res.secret}"
+
+      flow = DropboxOAuth2FlowNoRedirect.new(app_key, app_secret)
+      authorize_url = flow.start()
+
+      puts '1. Go to: ' + authorize_url
+      puts '2. Click "Allow" (you might have to log in first)'
+      puts '3. Copy the authorization code'
+      print 'Enter the authorization code here: '
+      code = STDIN.readline.strip
+
+      # This will fail if the user gave us an invalid authorization code
+      access_token, user_id = flow.finish(code)
+      
+      puts "export DROPBOX_ACCESS_TOKEN=#{access_token}"
+      puts "export DROPBOX_USER_ID=#{user_id}"
       puts
       puts "This auth token will last for 10 years, or when you choose to invalidate it, whichever comes first."
       puts
       puts "Now either include these constants in yours calls to dbox, or set them as environment variables."
       puts "In bash, including them in calls looks like:"
-      puts "$ DROPBOX_AUTH_KEY=#{res.key} DROPBOX_AUTH_SECRET=#{res.secret} dbox ..."
+      puts "$ DROPBOX_ACCESS_TOKEN=#{access_token} DROPBOX_USER_ID=#{user_id} dbox ..."
     end
 
     def self.connect
@@ -50,21 +59,12 @@ module Dbox
     end
 
     def connect
-      app_key = ENV["DROPBOX_APP_KEY"]
-      app_secret = ENV["DROPBOX_APP_SECRET"]
-      auth_key = ENV["DROPBOX_AUTH_KEY"]
-      auth_secret = ENV["DROPBOX_AUTH_SECRET"]
-      access_type = ENV["DROPBOX_ACCESS_TYPE"] || "dropbox" # "app_folder"
-
-      raise(ConfigurationError, "Please set the DROPBOX_APP_KEY environment variable to a Dropbox application key") unless app_key
-      raise(ConfigurationError, "Please set the DROPBOX_APP_SECRET environment variable to a Dropbox application secret") unless app_secret
-      raise(ConfigurationError, "Please set the DROPBOX_AUTH_KEY environment variable to an authenticated Dropbox session key") unless auth_key
-      raise(ConfigurationError, "Please set the DROPBOX_AUTH_SECRET environment variable to an authenticated Dropbox session secret") unless auth_secret
+      access_token = ENV["DROPBOX_ACCESS_TOKEN"]
+      access_type = ENV["DROPBOX_ACCESS_TYPE"] || "dropbox"
+      
+      raise(ConfigurationError, "Please set the DROPBOX_ACCESS_TOKEN environment variable to a Dropbox access token") unless access_token
       raise(ConfigurationError, "Please set the DROPBOX_ACCESS_TYPE environment variable either dropbox (full access) or sandbox (App access)") unless access_type == "dropbox" || access_type == "app_folder"
-
-      @session = DropboxSession.new(app_key, app_secret)
-      @session.set_access_token(auth_key, auth_secret)
-      @client = DropboxClient.new(@session, access_type)
+      @client = DropboxClient.new(access_token)
     end
 
     def run(path, tries = NUM_TRIES, &proc)

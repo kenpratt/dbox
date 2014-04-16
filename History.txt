@@ -1,3 +1,7 @@
+== 0.8.2 / 2014-04-16
+  * Bug Fixes
+    * Eliminitated duplicate dependencies from gemspec.
+
 == 0.8.1 / 2014-04-16
   * Minor Enhancements
     * Allow CTRL-C to kill process.

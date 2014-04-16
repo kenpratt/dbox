@@ -10,7 +10,7 @@ Jeweler::Tasks.new do |gem|
   gem.homepage = "http://github.com/kenpratt/dbox"
   gem.license = "MIT"
   gem.summary = "Dropbox made easy."
-  gem.description = "An easy-to-use Dropbox client with fine-grained control over syncs."
+  gem.description = "An easy-to-use Dropbox client with fine-grained control over syncs. Think of it as halfway point between the developer API and a normal client, which gives you control over what and when Dropbox syncs but handles all the details."
   gem.email = "ken@kenpratt.net"
   gem.authors = ["Ken Pratt"]
   gem.executables = ["dbox"]

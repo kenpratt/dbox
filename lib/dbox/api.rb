@@ -90,7 +90,7 @@ module Dbox
         else
           handle_response(path, e.http_response) { raise ServerError, "Server error -- might be a hiccup, please try your request again (#{e.message})" }
         end
-      rescue Exception => e
+      rescue => e
         if tries > 0
           log.info "Encounted an unknown error. Sleeping #{TIME_BETWEEN_TRIES}s and trying again. Error: #{e.inspect}"
           sleep TIME_BETWEEN_TRIES

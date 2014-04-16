@@ -203,7 +203,7 @@ module Dbox
                   changelist[:conflicts] ||= []
                   changelist[:conflicts] << res[1]
                 end
-              rescue Exception => e
+              rescue => e
                 log.error "Error while downloading #{c[:path]}: #{e.inspect}\n#{e.backtrace.join("\n")}"
                 parent_ids_of_failed_entries << c[:parent_id]
                 changelist[:failed] << { :operation => :create, :path => c[:path], :error => e }
@@ -226,7 +226,7 @@ module Dbox
                   changelist[:conflicts] ||= []
                   changelist[:conflicts] << res[1]
                 end
-              rescue Exception => e
+              rescue => e
                 log.error "Error while downloading #{c[:path]}: #{e.inspect}\n#{e.backtrace.join("\n")}"
                 parent_ids_of_failed_entries << c[:parent_id]
                 changelist[:failed] << { :operation => :create, :path => c[:path], :error => e }
@@ -316,7 +316,7 @@ module Dbox
         recur_dirs.each do |operation, dir|
           begin
             out += calculate_changes(dir, operation)
-          rescue Exception => e
+          rescue => e
             log.error "Error while caclulating changes for #{operation} on #{dir[:path]}: #{e.inspect}\n#{e.backtrace.join("\n")}"
             out += [[:failed, dir.merge({ :operation => operation, :error => e })]]
           end
@@ -457,7 +457,7 @@ module Dbox
                   changelist[:conflicts] ||= []
                   changelist[:conflicts] << { :original => c[:path], :renamed => res[:path] }
                 end
-              rescue Exception => e
+              rescue => e
                 log.error "Error while uploading #{c[:path]}: #{e.inspect}\n#{e.backtrace.join("\n")}"
                 changelist[:failed] << { :operation => :create, :path => c[:path], :error => e }
               end
@@ -483,7 +483,7 @@ module Dbox
                   changelist[:conflicts] ||= []
                   changelist[:conflicts] << { :original => c[:path], :renamed => res[:path] }
                 end
-              rescue Exception => e
+              rescue => e
                 log.error "Error while uploading #{c[:path]}: #{e.inspect}\n#{e.backtrace.join("\n")}"
                 changelist[:failed] << { :operation => :update, :path => c[:path], :error => e }
               end
@@ -502,7 +502,7 @@ module Dbox
               end
               database.delete_entry_by_path(c[:path])
               changelist[:deleted] << c[:path]
-            rescue Exception => e
+            rescue => e
               log.error "Error while deleting #{c[:path]}: #{e.inspect}\n#{e.backtrace.join("\n")}"
               changelist[:failed] << { :operation => :delete, :path => c[:path], :error => e }
             end

@@ -1,6 +1,12 @@
-== 0.8.9 / 2013-10.28
-  * Using the dropbox-sdk from a gem rather than vendoring it.
-  * Using OAuth2 instead of OAuth1 for authenticating. This means that the environment variables you need are renamed from DROPBOX_AUTH_KEY and DROPBOX_SECRET to DROPBOX_ACCESS_TOKEN.
+== 0.8.1 / 2014-04-16
+  * Minor Enhancements
+    * Allow CTRL-C to kill process.
+
+== 0.8.0 / 2013-10-28
+  * Major Enhancements
+    * Using OAuth2 instead of OAuth1 for authenticating. This means that the environment variables you need are renamed from DROPBOX_AUTH_KEY and DROPBOX_SECRET to DROPBOX_ACCESS_TOKEN.
+  * Minor Enhancements
+    * Using the dropbox-sdk from a gem rather than vendoring it.
 
 == 0.7.6 / 2013-10-02
   * Bug Fixes

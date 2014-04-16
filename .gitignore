@@ -1,4 +1,5 @@
 config/dropbox.json
+Gemfile.lock
 pkg
 tmp
 .DS_Store

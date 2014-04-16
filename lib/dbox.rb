@@ -1,7 +1,6 @@
 ROOT_PATH = File.expand_path(File.join(File.dirname(__FILE__), ".."))
 $:.unshift File.join(ROOT_PATH, "lib")
 $:.unshift File.join(ROOT_PATH, "vendor")
-$:.unshift File.join(ROOT_PATH, "vendor", "dropbox-ruby-sdk", "lib")
 
 require "dropbox_sdk"
 require "fileutils"

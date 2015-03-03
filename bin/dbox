@@ -2,6 +2,7 @@
 
 $:.unshift File.expand_path(File.join(File.dirname(__FILE__), "..", "lib"))
 require "dbox"
+require "json"
 
 # usage line
 def usage
@@ -11,8 +12,9 @@ Usage: dbox <command> [<args>]
 Commands:
   authorize                             Generate auth keys
   create <remote_path> [<local_path>]   Create a new Dropbox folder
+  list <remote_path>					List files and directories in Dropbox folder
   clone <remote_path> [<local_path>]    Clone an existing Dropbox folder
-  pull [<local_path>]                   Pull chonges from Dropbox
+  pull [<local_path>]                   Pull changes from Dropbox
   push [<local_path>]                   Push changes to Dropbox
   sync [<local_path>]                   Sync changes to Dropbox
   move <new_remote_path> [<local_path>] Move the remote Dropbox folder to a new location
@@ -93,6 +95,12 @@ when "metadata"
   remote_path = args[0]
   res = Dbox.metadata(remote_path)
   puts res.inspect
+when "list"
+  remote_path = args[0]
+  files = Dbox.metadata(remote_path)
+  files['contents'].each do |file|
+    puts file['path'][/[^\/]+$/]
+  end
 else
   print_usage_and_quit
 end

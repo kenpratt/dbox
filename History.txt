@@ -1,3 +1,7 @@
+== 0.8.3 / 2015-03-02
+  * Minor Enhancements
+    * Added dbox list command (Thanks, mzywiol)
+
 == 0.8.2 / 2014-04-16
   * Bug Fixes
     * Eliminitated duplicate dependencies from gemspec.
